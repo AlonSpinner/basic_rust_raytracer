@@ -1,5 +1,6 @@
 use crate::scene::{Camera, Scene,Color, Intersectable};
 use image::{Rgba, RgbaImage, Pixel};
+use crate::vector::V3;
 
 const BLACK : Color = Color{r: 0.0, g: 0.0, b: 0.0};
 
@@ -10,6 +11,7 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
     let mut max_depth = 0.0f64;
     let mut min_depth = f64::INFINITY;
 
+    let camera_axis = camera.pose.r.R.get_col(2);
     for i in 0..camera.image_size.0 {
         for j in 0..camera.image_size.1 {
             let ray = ray_bundle[i][j];
@@ -19,11 +21,11 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
                 
                 match intersection {
                     Some((t,_)) => {
-                        if t < depth_buffer[i * camera.image_size.1 + j] {
-                            depth_buffer[i * camera.image_size.1 + j] = t;
-
-                            if t > max_depth { max_depth = t;}
-                            if t < min_depth { min_depth = t;}
+                        let z =  t * V3::dot(ray.direction, camera_axis);
+                        if z < depth_buffer[i * camera.image_size.1 + j] {
+                            depth_buffer[i * camera.image_size.1 + j] = z;
+                            if z > max_depth { max_depth = z;}
+                            if z < min_depth { min_depth = z;}
                         }
                     },
                     None => {}
