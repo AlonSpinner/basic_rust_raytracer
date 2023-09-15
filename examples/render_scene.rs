@@ -1,7 +1,7 @@
 use raytracing_tutorial::geometry::{Sphere, SE3, Plane};
 use raytracing_tutorial::matrix::Matrix33;
 use raytracing_tutorial::vector::{V3};
-use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry, SurfaceType, Color};
+use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry, SurfaceType, Color, Light};
 use raytracing_tutorial::rendering::{render_depth,render_image};
 use rand;
 
@@ -33,7 +33,7 @@ fn main() {
         let sphere = Element{
             name : format!("sphere{}", i),
             geometry : SceneGeometry::Sphere(Sphere::new(V3::new([x, y, z]), r)),
-            material : Material { color: Color::random(), albedo: 0.0, surface_type: SurfaceType::Diffuse },
+            material : Material::color_with_defaults(Color::random())
         };
         elements.push(sphere);
     }
@@ -45,8 +45,12 @@ fn main() {
         material : Material { color: Color::green(), albedo: 0.0, surface_type: SurfaceType::Diffuse },
     };
     elements.push(plane);
+
+    //add lights
+    let mut lights : Vec<Light> = Vec::new();
+    let light = Light::Directional::new(V3::new([1.0, 1.0, 1.0]), V3::new([0.0, 0.0, -1.0]));
     
-    let scene = Scene::new(elements);
+    let scene = Scene::new(elements, lights);
     let depth_image = render_depth(&camera, &scene);
     let rgb_image = render_image(&camera, &scene);
     

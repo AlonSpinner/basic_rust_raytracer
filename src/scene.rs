@@ -126,13 +126,18 @@ impl Mul<f32> for Color {
 pub struct DirectionalLight {
     pub direction: V3,
     pub color: Color,
-    pub intensity: f64,
+    pub intensity: f32,
 }
 
 pub struct PointLight {
     pub position: V3,
     pub color: Color,
-    pub intensity: f64,
+    pub intensity: f32,
+}
+
+pub enum Light {
+    Directional(DirectionalLight),
+    Point(PointLight),
 }
 
 #[allow(non_snake_case)]
@@ -198,8 +203,18 @@ pub enum SurfaceType {
 #[derive(Debug)]
 pub struct Material{
     pub color : Color,
-    pub albedo : f64,
+    pub albedo : f32,
     pub surface_type : SurfaceType
+}
+
+impl Material {
+    pub fn color_with_defaults(color : Color) -> Self {
+        Material {
+            color : color,
+            albedo : 0.18,
+            surface_type : SurfaceType::Diffuse
+        }
+    }
 }
 
 pub trait Intersectable {
@@ -271,13 +286,15 @@ pub struct Element {
 
 pub struct Scene {
     pub elements: Vec<Element>,
+    pub lights : Vec<Light>,
 }
 
 impl Scene {
-    pub fn new(elements : Vec<Element>) -> Self {
+    pub fn new(elements : Vec<Element>, lights : Vec<Light>) -> Self {
         Scene {
             //lights one day
-            elements: elements
+            elements: elements,
+            lights : lights,
         }
     }
 }

@@ -1,4 +1,6 @@
-use crate::scene::{Camera, Scene,Color, Intersectable};
+use std::any::TypeId;
+
+use crate::scene::{Camera, Scene,Color, Intersectable, Light};
 use image::{Rgba, RgbaImage, Pixel};
 use crate::vector::V3;
 
@@ -56,6 +58,21 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
     let mut pixel_buffer = vec![BLACK; camera.image_size.0 * camera.image_size.1];
     let ray_bundle = camera.get_ray_bundle();
 
+
+    let light = &scene.lights[0];
+    let mut light_intensity = 1.0;
+    let mut light_color = Color::default();
+    let mut light_direction = V3::default();
+    match light {
+        Light::Directional(d_light) => {
+            light_intensity = d_light.intensity.clone();
+            light_direction = d_light.direction.clone();
+            light_color = d_light.color.clone();
+            // Now you can use `direction` for whatever you need
+        },
+        Light::Point(_) => panic!("Point light not supported yet"),
+    }
+    
     for i in 0..camera.image_size.0 {
         for j in 0..camera.image_size.1 {
             let ray = ray_bundle[i][j];
@@ -64,10 +81,16 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
                 let intersection = element.geometry.intersect(&ray);
                 
                 match intersection {
-                    Some((t,_)) => {
+                    Some((t,surface_normal)) => {
                         if t < tof_buffer[i * camera.image_size.1 + j] {
                             tof_buffer[i * camera.image_size.1 + j] = t;
-                            pixel_buffer[i * camera.image_size.1 + j] = element.material.color;
+
+                            pixel_buffer[i * camera.image_size.1 + j] = lambret_cosine_law(surface_normal,
+                                                                    -light_direction,
+                                                                    light_intensity,
+                                                                    light_color,
+                                                                    element.material.color,
+                                                                    element.material.albedo);
                         }
                     },
                     None => {}
@@ -84,4 +107,13 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
         }
     }
     return image;
+}
+
+fn lambret_cosine_law(surface_normal : V3, direction_to_light :V3, light_intensity : f32, light_color : Color,
+     element_color : Color, element_albedo : f32) -> Color {
+    let cos_theta = V3::dot(surface_normal, direction_to_light).max(0.0) as f32;
+    let light_power = light_intensity * cos_theta;
+    let light_reflected = element_albedo / std::f32::consts::PI;
+    element_color * light_color * light_power * light_reflected
+
 }
