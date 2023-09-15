@@ -2,7 +2,7 @@ use raytracing_tutorial::geometry::{Sphere, SE3, Plane};
 use raytracing_tutorial::matrix::Matrix33;
 use raytracing_tutorial::vector::{V3};
 use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry, SurfaceType, Color};
-use raytracing_tutorial::rendering::render_depth;
+use raytracing_tutorial::rendering::{render_depth,render_image};
 use rand;
 
 #[allow(non_snake_case)]
@@ -47,10 +47,10 @@ fn main() {
     elements.push(plane);
     
     let scene = Scene::new(elements);
-    let image = render_depth(&camera, &scene);
-
-    //save image camera image to png
-    image.save("my_image.png").unwrap();
-
-
+    let depth_image = render_depth(&camera, &scene);
+    let rgb_image = render_image(&camera, &scene);
+    
+    //save images to png
+    depth_image.save("depth.png").unwrap();
+    rgb_image.save("rgb.png").unwrap();
 }

@@ -50,3 +50,42 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
     }
     return image;
 }
+
+pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
+    let mut tof_buffer = vec![f64::INFINITY; camera.image_size.0 * camera.image_size.1];
+    let mut pixel_buffer = vec![BLACK; camera.image_size.0 * camera.image_size.1];
+    let ray_bundle = camera.get_ray_bundle();
+
+    let mut max_depth = 0.0f64;
+    let mut min_depth = f64::INFINITY;
+
+    let camera_axis = camera.pose.r.R.get_col(2);
+    for i in 0..camera.image_size.0 {
+        for j in 0..camera.image_size.1 {
+            let ray = ray_bundle[i][j];
+
+            for element in &scene.elements {
+                let intersection = element.geometry.intersect(&ray);
+                
+                match intersection {
+                    Some((t,_)) => {
+                        if t < tof_buffer[i * camera.image_size.1 + j] {
+                            tof_buffer[i * camera.image_size.1 + j] = t;
+                            pixel_buffer[i * camera.image_size.1 + j] = element.material.color;
+                        }
+                    },
+                    None => {}
+                }
+            }
+
+        }
+    }
+    let mut image = RgbaImage::new(camera.image_size.0 as u32, camera.image_size.1 as u32);
+    for i in 0..camera.image_size.0 {
+        for j in 0..camera.image_size.1 {
+            let color = pixel_buffer[i * camera.image_size.1 + j];
+            image.put_pixel(i as u32, j as u32, color.into());
+        }
+    }
+    return image;
+}
