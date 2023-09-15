@@ -56,10 +56,6 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
     let mut pixel_buffer = vec![BLACK; camera.image_size.0 * camera.image_size.1];
     let ray_bundle = camera.get_ray_bundle();
 
-    let mut max_depth = 0.0f64;
-    let mut min_depth = f64::INFINITY;
-
-    let camera_axis = camera.pose.r.R.get_col(2);
     for i in 0..camera.image_size.0 {
         for j in 0..camera.image_size.1 {
             let ray = ray_bundle[i][j];

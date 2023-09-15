@@ -53,6 +53,10 @@ impl Color {
     pub fn blue() -> Self {
         Color::new(0.0, 0.0, 1.0)
     }
+
+    pub fn random() -> Self {
+        Color::new(rand::random::<f32>(), rand::random::<f32>(), rand::random::<f32>())
+    }
 }
 
 impl Into<Rgba<u8>> for Color {

@@ -33,7 +33,7 @@ fn main() {
         let sphere = Element{
             name : format!("sphere{}", i),
             geometry : SceneGeometry::Sphere(Sphere::new(V3::new([x, y, z]), r)),
-            material : Material { color: Color::red(), albedo: 0.0, surface_type: SurfaceType::Diffuse },
+            material : Material { color: Color::random(), albedo: 0.0, surface_type: SurfaceType::Diffuse },
         };
         elements.push(sphere);
     }
