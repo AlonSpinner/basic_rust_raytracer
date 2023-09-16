@@ -42,6 +42,14 @@ impl Color {
                b: clamp(b,0.0,1.0) }
     }
 
+    pub fn white() -> Self {
+        Color::new(1.0, 1.0, 1.0)
+    }
+
+    pub fn yellow() -> Self {
+        Color::new(1.0, 1.0, 0.0)
+    }
+
     pub fn red() -> Self {
         Color::new(1.0, 0.0, 0.0)
     }
@@ -254,12 +262,11 @@ impl Intersectable for Sphere {
         }
 
         let time_of_flight = l_d_t - (r2-s2).sqrt();
-        let normal = ray.origin + time_of_flight * ray.direction - self.center;
+        let normal = (ray.origin + time_of_flight * ray.direction - self.center).normalize();
 
         Some((time_of_flight, normal))
     }
 }
-
 
 #[derive(Debug)]
 pub enum SceneGeometry{
@@ -282,7 +289,6 @@ pub struct Element {
     pub geometry: SceneGeometry,
     pub material: Material
 }
-
 
 pub struct Scene {
     pub elements: Vec<Element>,

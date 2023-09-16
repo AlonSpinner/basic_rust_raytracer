@@ -1,5 +1,3 @@
-use std::any::TypeId;
-
 use crate::scene::{Camera, Scene,Color, Intersectable, Light};
 use image::{Rgba, RgbaImage, Pixel};
 use crate::vector::V3;
@@ -110,7 +108,11 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
 }
 
 fn lambret_cosine_law(surface_normal : V3, direction_to_light :V3, light_intensity : f32, light_color : Color,
-     element_color : Color, element_albedo : f32) -> Color {
+    element_color : Color, element_albedo : f32) -> Color {
+    
+    // assert!(surface_normal.is_unit_length());
+    // assert!(direction_to_light.is_unit_length());
+    
     let cos_theta = V3::dot(surface_normal, direction_to_light).max(0.0) as f32;
     let light_power = light_intensity * cos_theta;
     let light_reflected = element_albedo / std::f32::consts::PI;
