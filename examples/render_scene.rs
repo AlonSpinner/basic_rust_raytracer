@@ -51,7 +51,7 @@ fn main() {
     let mut lights : Vec<Light> = Vec::new();
     let light = Light::Directional(DirectionalLight { direction: V3::new([1.0, -1.0, -1.0]).normalize(),
                                                              color: Color::white(),
-                                                             intensity: 10.0 });
+                                                             intensity: 1.0 });
     lights.push(light);
     
     let scene = Scene::new(elements, lights);

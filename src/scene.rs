@@ -225,13 +225,19 @@ impl Material {
     }
 }
 
+pub struct Intersection {
+    pub time_of_flight : f64,
+    pub normal : V3,
+    pub point : V3,
+}
+
 pub trait Intersectable {
-    fn intersect(&self, ray : &Ray) -> Option<(f64,V3)>;
+    fn intersect(&self, ray : &Ray) -> Option<Intersection>;
     /*returns flight time, surface normals */
 }
 
 impl Intersectable for Plane{
-    fn intersect(&self, ray : &Ray) -> Option<(f64,V3)> {
+    fn intersect(&self, ray : &Ray) -> Option<Intersection> {
         let denum = V3::dot(self.normal, ray.direction);
         if denum.abs() < EPSILON {
             return None;
@@ -239,14 +245,18 @@ impl Intersectable for Plane{
         let num = V3::dot(self.normal, self.center - ray.origin);
         let t = num / denum;
         if t > 0.0 {
-            return Some((t, self.normal));
+            return Some(Intersection{
+                time_of_flight : t,
+                normal : self.normal,
+                point : ray.origin + t * ray.direction
+            });
         }
         return None;
     }
 }
 
 impl Intersectable for Sphere {
-    fn intersect(&self, ray: &Ray) -> Option<(f64,V3)> {
+    fn intersect(&self, ray: &Ray) -> Option<Intersection> {
         let l = self.center - ray.origin;
         
         let l_d_t = V3::dot(l, ray.direction);
@@ -264,7 +274,11 @@ impl Intersectable for Sphere {
         let time_of_flight = l_d_t - (r2-s2).sqrt();
         let normal = (ray.origin + time_of_flight * ray.direction - self.center).normalize();
 
-        Some((time_of_flight, normal))
+        Some(Intersection{
+            time_of_flight: time_of_flight,
+            normal: normal,
+            point: ray.origin + time_of_flight * ray.direction,
+        })
     }
 }
 
@@ -275,7 +289,7 @@ pub enum SceneGeometry{
 }
 
 impl Intersectable for SceneGeometry{
-    fn intersect(&self, ray : &Ray) -> Option<(f64,V3)> {
+    fn intersect(&self, ray : &Ray) -> Option<Intersection> {
         match self {
             SceneGeometry::Sphere(sphere) => sphere.intersect(ray),
             SceneGeometry::Plane(plane) => plane.intersect(ray)

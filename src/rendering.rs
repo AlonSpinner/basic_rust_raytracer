@@ -20,8 +20,8 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
                 let intersection = element.geometry.intersect(&ray);
                 
                 match intersection {
-                    Some((t,_)) => {
-                        let z =  t * V3::dot(ray.direction, camera_axis);
+                    Some(intersection) => {
+                        let z =  intersection.time_of_flight * V3::dot(ray.direction, camera_axis);
                         if z < depth_buffer[i * camera.image_size.1 + j] {
                             depth_buffer[i * camera.image_size.1 + j] = z;
                             if z > max_depth { max_depth = z;}
@@ -58,7 +58,7 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
 
 
     let light = &scene.lights[0];
-    let mut light_intensity = 1.0;
+    let mut light_intensity = 0.0;
     let mut light_color = Color::default();
     let mut light_direction = V3::default();
     match light {
@@ -79,11 +79,11 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
                 let intersection = element.geometry.intersect(&ray);
                 
                 match intersection {
-                    Some((t,surface_normal)) => {
-                        if t < tof_buffer[i * camera.image_size.1 + j] {
-                            tof_buffer[i * camera.image_size.1 + j] = t;
+                    Some(intersection) => {
+                        if intersection.time_of_flight < tof_buffer[i * camera.image_size.1 + j] {
+                            tof_buffer[i * camera.image_size.1 + j] = intersection.time_of_flight;
 
-                            pixel_buffer[i * camera.image_size.1 + j] = lambret_cosine_law(surface_normal,
+                            pixel_buffer[i * camera.image_size.1 + j] = lambret_cosine_law(intersection.normal,
                                                                     -light_direction,
                                                                     light_intensity,
                                                                     light_color,

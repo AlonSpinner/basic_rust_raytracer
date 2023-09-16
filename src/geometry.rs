@@ -48,7 +48,7 @@ impl Ray {
 
     pub fn transmit(&self, intersection_point: V3, normal: V3, n1: f64, n2: f64) -> Option<Ray> {
         //need to understand this better, later
-        assert!(normal.norm2() == 1.0);
+        assert!(normal.is_unit_length());
 
         let eta = n1 / n2;
         let cos_theta1 = -V3::dot(self.direction, normal);  // Assuming both vectors are normalized
