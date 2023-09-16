@@ -320,14 +320,6 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn new(elements : Vec<Element>, lights : Vec<Light>) -> Self {
-        Scene {
-            //lights one day
-            elements: elements,
-            lights : lights,
-        }
-    }
-
     pub fn cast(&self, ray: &Ray) -> Option<Intersection> {
         let mut closest_intersection: Option<Intersection> = None;
     

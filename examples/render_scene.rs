@@ -2,7 +2,7 @@ use raytracing_tutorial::geometry::{Sphere, SE3, Plane};
 use raytracing_tutorial::matrix::Matrix33;
 use raytracing_tutorial::vector::{V3};
 use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry,
-     SurfaceType, Color, Light, DirectionalLight};
+     SurfaceType, Color, Light, DirectionalLight, PointLight};
 use raytracing_tutorial::rendering::{render_depth,render_image};
 use rand;
 
@@ -19,47 +19,46 @@ fn main() {
                                             [0.0, 0.0, 1.0]]);
     let camera = Camera::new(pose, image_size, K);
 
-
-    let radius = [0.3,0.5];
-    let box_x = [-2.0, 2.0];
-    let box_y = [-2.0, 2.0];
-    let box_z = [0.3, 2.0];
-
+    //add elements
     let mut elements : Vec<Element> = Vec::new();
-    for i in 0..3 {
-        let x = box_x[0] + (box_x[1] - box_x[0]) * rand::random::<f64>();
-        let y = box_y[0] + (box_y[1] - box_y[0]) * rand::random::<f64>();
-        let z = box_z[0] + (box_z[1] - box_z[0]) * rand::random::<f64>();
-        let r = radius[0] + (radius[1] - radius[0]) * rand::random::<f64>();
-        let sphere = Element{
-            name : format!("sphere{}", i),
-            geometry : SceneGeometry::Sphere(Sphere::new(V3::new([x, y, z]), r)),
-            material : Material::color_with_defaults(Color::random())
-        };
-        elements.push(sphere);
-    }
+    elements.push(Element{
+        name : format!("sphere1"),
+        geometry : SceneGeometry::Sphere(Sphere::new(V3::new([2.0, 0.0, 2.0]), 0.5)),
+        material : Material::color_with_defaults(Color::red()),
+    });
+    elements.push(Element{
+        name : format!("sphere2"),
+        geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-2.0, 0.0, 2.0]), 1.0)),
+        material : Material::color_with_defaults(Color::yellow()),
+    });
+    elements.push(Element{
+        name : format!("sphere3"),
+        geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-1.0, -2.0, 2.0]), 1.0)),
+        material : Material::color_with_defaults(Color::blue()),
+    });
 
-    // add xy plane
-    let plane = Element{
+    elements.push(Element{
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(V3::default(), V3::new([0.0, 0.0, 1.0]))),
         material : Material::color_with_defaults(Color::green()),
-    };
-    elements.push(plane);
+    });
 
     //add lights
     let mut lights : Vec<Light> = Vec::new();
-    let dir_light1 = Light::Directional(DirectionalLight { direction: V3::new([1.0, -1.0, -1.0]).normalize(),
-                                                             color: Color::yellow(),
-                                                             intensity: 1.0 });
-    lights.push(dir_light1);
-    let dir_light2 = Light::Directional(DirectionalLight { direction: V3::new([-1.0, 1.0, -1.0]).normalize(),
-    color: Color::blue(),
-    intensity: 5.0 });
-    lights.push(dir_light2);
+    lights.push(Light::Directional(DirectionalLight{
+        direction: V3::new([0.0, 0.0, -1.0]).normalize(),
+        color: Color::white(),
+        intensity: 1.0,
+    }));
+    let mut lights : Vec<Light> = Vec::new();
+    lights.push(Light::Point(PointLight{
+        position: V3::new([0.0, 0.0, 0.0]),
+        color: Color::white(),
+        intensity: 100.0,
+    }));
     
-    
-    let scene = Scene::new(elements, lights);
+    //build scene and render
+    let scene = Scene{elements, lights};
     let depth_image = render_depth(&camera, &scene);
     let rgb_image = render_image(&camera, &scene);
     
