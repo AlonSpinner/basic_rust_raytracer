@@ -93,7 +93,7 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
                                                     element.material.color,
                                                     element.material.albedo);
                         }
-                        pixel_buffer[i * camera.image_size.1 + j] = pixel_color;
+                        pixel_buffer[i * camera.image_size.1 + j] = pixel_color.clamp();
                     }
                 }
             }
