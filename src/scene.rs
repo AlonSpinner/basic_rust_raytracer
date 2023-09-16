@@ -36,10 +36,16 @@ pub struct Color {
 }
 
 impl Color {
-    fn new(r: f32, g: f32, b: f32) -> Self {
-        Color {r: clamp(r,0.0,1.0),
-               g: clamp(g,0.0,1.0),
-               b: clamp(b,0.0,1.0) }
+    pub fn clamp(&self) -> Self {
+        Color {
+            r: clamp(self.r, 0.0, 1.0),
+            g: clamp(self.g, 0.0, 1.0),
+            b: clamp(self.b, 0.0, 1.0),
+        } 
+    }
+
+    pub fn new(r: f32, g: f32, b: f32) -> Self {
+        Color {r: r, g: g, b: b}.clamp()
     }
 
     pub fn white() -> Self {
@@ -96,9 +102,9 @@ impl Add for Color {
     type Output = Self;
     fn add(self, rhs: Color) -> Self::Output {
         Color {
-            r: clamp(self.r + rhs.r,0.0,1.0),
-            g: clamp(self.g + rhs.g,0.0,1.0),
-            b: clamp(self.b + rhs.b,0.0,1.0),
+            r: self.r + rhs.r,
+            g: self.g + rhs.g,
+            b: self.b + rhs.b,
         }
     }
 }
@@ -106,9 +112,9 @@ impl Mul for Color {
     type Output = Self;
     fn mul(self, rhs : Color) -> Self::Output {
         Color {
-            r: clamp(self.r * rhs.r,0.0,1.0),
-            g: clamp(self.g * rhs.g,0.0,1.0),
-            b: clamp(self.b * rhs.b,0.0,1.0),
+            r: self.r * rhs.r,
+            g: self.g * rhs.g,
+            b: self.b * rhs.b,
         }
     }
 }
@@ -117,9 +123,9 @@ impl Mul<Color> for f32 {
     type Output = Color;
     fn mul(self, rhs : Color) -> Self::Output {
         Color {
-            r: clamp(self * rhs.r,0.0,1.0),
-            g: clamp(self * rhs.g,0.0,1.0),
-            b: clamp(self * rhs.b,0.0,1.0),
+            r: self * rhs.r,
+            g: self * rhs.g,
+            b: self * rhs.b,
         }
     }
 }
@@ -128,9 +134,9 @@ impl Mul<f32> for Color {
     type Output = Self;
     fn mul(self, rhs : f32) -> Self::Output {
         Color {
-            r: clamp(self.r * rhs,0.0,1.0),
-            g: clamp(self.g * rhs,0.0,1.0),
-            b: clamp(self.b * rhs,0.0,1.0),
+            r: self.r * rhs,
+            g: self.g * rhs,
+            b: self.b * rhs,
         }
     }
 }

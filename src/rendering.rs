@@ -118,6 +118,5 @@ fn lambret_cosine_law(surface_normal : V3, direction_to_light :V3, light_intensi
     let cos_theta = V3::dot(surface_normal, direction_to_light).max(0.0) as f32;
     let light_power = light_intensity * cos_theta;
     let light_reflected = element_albedo / std::f32::consts::PI;
-    (element_color * light_color * light_power * light_reflected)
-
+    (element_color * light_color * light_power * light_reflected).clamp()
 }
