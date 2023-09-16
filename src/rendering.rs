@@ -57,29 +57,29 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
 
                         let mut pixel_color = Color::black();                    
                         for light in &scene.lights {
-                            let light_direction : V3;
+                            let direction_to_light : V3;
                             let light_color : Color;
                             let light_intensity : f32;
                             match light {
                                 Light::Directional(dir_light) => {
-                                    light_direction = dir_light.direction;
+                                    direction_to_light = -dir_light.direction;
                                     light_color = dir_light.color;
                                     light_intensity = dir_light.intensity;
                                 
                                     let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
-                                    -light_direction);
+                                    direction_to_light);
                                     if let Some(_) = scene.cast(&shadow_ray) {continue;}
                                 
                                 }
                                 Light::Point(point_light) => {
-                                    light_direction = (point_light.position - intersection.point).normalize();
+                                    direction_to_light = (point_light.position - intersection.point).normalize();
                                     light_color = point_light.color;
 
                                     let r2 = (point_light.position - intersection.point).norm2() as f32;
                                     light_intensity = point_light.intensity / (4.0 * ::std::f32::consts::PI * r2);
 
                                     let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
-                                    -light_direction);
+                                    direction_to_light);
                                     if let Some(shadow_intersection) = scene.cast(&shadow_ray) {
                                         if shadow_intersection.time_of_flight < r2.sqrt() as f64 {continue;}
                                         }
@@ -87,7 +87,7 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
                             }
 
                             pixel_color = pixel_color + lambret_cosine_law(intersection.normal,
-                                                    -light_direction,
+                                                    direction_to_light,
                                                     light_intensity,
                                                     light_color,
                                                     element.material.color,

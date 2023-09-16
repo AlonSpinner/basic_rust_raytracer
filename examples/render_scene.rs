@@ -46,10 +46,9 @@ fn main() {
     let mut lights : Vec<Light> = Vec::new();
     lights.push(Light::Directional(DirectionalLight{
         direction: V3::new([0.0, 0.0, -1.0]).normalize(),
-        color: Color::white(),
-        intensity: 100.0,
+        color: Color::yellow(),
+        intensity: 0.3,
     }));
-    let mut lights : Vec<Light> = Vec::new();
     lights.push(Light::Point(PointLight{
         position: V3::new([0.0, 0.0, 1.0]),
         color: Color::white(),
