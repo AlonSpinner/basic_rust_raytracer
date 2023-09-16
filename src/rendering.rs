@@ -1,8 +1,8 @@
-use crate::scene::{Camera, Scene,Color, Intersectable, Light};
+use crate::{scene::{Camera, Scene, Color, Intersectable, Light}, geometry::Ray};
 use image::{Rgba, RgbaImage, Pixel};
 use crate::vector::V3;
 
-const BLACK : Color = Color{r: 0.0, g: 0.0, b: 0.0};
+const SHADOW_BIAS : f64 = 1e-10;
 
 pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
     let mut depth_buffer = vec![f64::INFINITY; camera.image_size.0 * camera.image_size.1];
@@ -16,22 +16,12 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
         for j in 0..camera.image_size.1 {
             let ray = ray_bundle[i][j];
 
-            for element in &scene.elements {
-                let intersection = element.geometry.intersect(&ray);
-                
-                match intersection {
-                    Some(intersection) => {
-                        let z =  intersection.time_of_flight * V3::dot(ray.direction, camera_axis);
-                        if z < depth_buffer[i * camera.image_size.1 + j] {
-                            depth_buffer[i * camera.image_size.1 + j] = z;
-                            if z > max_depth { max_depth = z;}
-                            if z < min_depth { min_depth = z;}
-                        }
-                    },
-                    None => {}
-                }
+            if let Some(intersection) = scene.cast(&ray) {
+                let z =  intersection.time_of_flight * V3::dot(ray.direction, camera_axis);
+                depth_buffer[i * camera.image_size.1 + j] = z;
+                if z > max_depth { max_depth = z;}
+                if z < min_depth { min_depth = z;}
             }
-
         }
     }
     let mut image = RgbaImage::new(camera.image_size.0 as u32, camera.image_size.1 as u32);
@@ -53,7 +43,7 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
 
 pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
     let mut tof_buffer = vec![f64::INFINITY; camera.image_size.0 * camera.image_size.1];
-    let mut pixel_buffer = vec![BLACK; camera.image_size.0 * camera.image_size.1];
+    let mut pixel_buffer = vec![Color::black(); camera.image_size.0 * camera.image_size.1];
     let ray_bundle = camera.get_ray_bundle();
 
 
@@ -76,22 +66,25 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
             let ray = ray_bundle[i][j];
 
             for element in &scene.elements {
-                let intersection = element.geometry.intersect(&ray);
-                
-                match intersection {
-                    Some(intersection) => {
-                        if intersection.time_of_flight < tof_buffer[i * camera.image_size.1 + j] {
-                            tof_buffer[i * camera.image_size.1 + j] = intersection.time_of_flight;
+                if let Some(intersection) = element.geometry.intersect(&ray) {
+                    
+                    let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
+                                                 -light_direction);
+                    if let Some(_) = scene.cast(&shadow_ray) {
+                        continue;
+                    }
+                    
+                    if intersection.time_of_flight < tof_buffer[i * camera.image_size.1 + j] {
+                        tof_buffer[i * camera.image_size.1 + j] = intersection.time_of_flight;
 
-                            pixel_buffer[i * camera.image_size.1 + j] = lambret_cosine_law(intersection.normal,
-                                                                    -light_direction,
-                                                                    light_intensity,
-                                                                    light_color,
-                                                                    element.material.color,
-                                                                    element.material.albedo);
-                        }
-                    },
-                    None => {}
+                        
+                        pixel_buffer[i * camera.image_size.1 + j] = lambret_cosine_law(intersection.normal,
+                                                                -light_direction,
+                                                                light_intensity,
+                                                                light_color,
+                                                                element.material.color,
+                                                                element.material.albedo);
+                    }
                 }
             }
 

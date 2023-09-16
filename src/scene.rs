@@ -62,6 +62,10 @@ impl Color {
         Color::new(0.0, 0.0, 1.0)
     }
 
+    pub fn black() -> Self {
+        Color::new(0.0, 0.0, 0.0)
+    }
+
     pub fn random() -> Self {
         Color::new(rand::random::<f32>(), rand::random::<f32>(), rand::random::<f32>())
     }
@@ -316,6 +320,26 @@ impl Scene {
             elements: elements,
             lights : lights,
         }
+    }
+
+    pub fn cast(&self, ray: &Ray) -> Option<Intersection> {
+        let mut closest_intersection: Option<Intersection> = None;
+    
+        for element in &self.elements {
+            if let Some(current_intersection) = element.geometry.intersect(ray) {
+                match &closest_intersection {
+                    Some(closest) => {
+                        if current_intersection.time_of_flight < closest.time_of_flight {
+                            closest_intersection = Some(current_intersection);
+                        }
+                    },
+                    None => {
+                        closest_intersection = Some(current_intersection);
+                    }
+                }
+            }
+        }
+        closest_intersection
     }
 }
 

@@ -12,7 +12,7 @@ pub struct Ray {
 
 impl Ray {
     pub fn new(origin: V3, direction: V3) -> Ray {
-        assert!((direction.norm2() - 1.0).abs() < EPSILON);
+        assert!(direction.is_unit_length());
         Ray {
             origin: origin,
             direction: direction,
