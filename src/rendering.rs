@@ -45,49 +45,58 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
     let mut tof_buffer = vec![f64::INFINITY; camera.image_size.0 * camera.image_size.1];
     let mut pixel_buffer = vec![Color::black(); camera.image_size.0 * camera.image_size.1];
     let ray_bundle = camera.get_ray_bundle();
-
-
-    let light = &scene.lights[0];
-    let mut light_intensity = 0.0;
-    let mut light_color = Color::default();
-    let mut light_direction = V3::default();
-    match light {
-        Light::Directional(d_light) => {
-            light_intensity = d_light.intensity.clone();
-            light_direction = d_light.direction.clone();
-            light_color = d_light.color.clone();
-            // Now you can use `direction` for whatever you need
-        },
-        Light::Point(_) => panic!("Point light not supported yet"),
-    }
     
     for i in 0..camera.image_size.0 {
         for j in 0..camera.image_size.1 {
             let ray = ray_bundle[i][j];
 
             for element in &scene.elements {
-                if let Some(intersection) = element.geometry.intersect(&ray) {
-                    
-                    let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
-                                                 -light_direction);
-                    if let Some(_) = scene.cast(&shadow_ray) {
-                        continue;
-                    }
-                    
+                if let Some(intersection) = element.geometry.intersect(&ray) {                   
                     if intersection.time_of_flight < tof_buffer[i * camera.image_size.1 + j] {
                         tof_buffer[i * camera.image_size.1 + j] = intersection.time_of_flight;
 
-                        
-                        pixel_buffer[i * camera.image_size.1 + j] = lambret_cosine_law(intersection.normal,
-                                                                -light_direction,
-                                                                light_intensity,
-                                                                light_color,
-                                                                element.material.color,
-                                                                element.material.albedo);
+                        let mut pixel_color = Color::black();                    
+                        for light in &scene.lights {
+                            let light_direction : V3;
+                            let light_color : Color;
+                            let light_intensity : f32;
+                            match light {
+                                Light::Directional(dir_light) => {
+                                    light_direction = dir_light.direction;
+                                    light_color = dir_light.color;
+                                    light_intensity = dir_light.intensity;
+                                
+                                    let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
+                                    -light_direction);
+                                    if let Some(_) = scene.cast(&shadow_ray) {continue;}
+                                
+                                }
+                                Light::Point(point_light) => {
+                                    light_direction = (point_light.position - intersection.point).normalize();
+                                    light_color = point_light.color;
+
+                                    let r2 = (point_light.position - intersection.point).norm2() as f32;
+                                    light_intensity = point_light.intensity / (4.0 * ::std::f32::consts::PI * r2);
+
+                                    let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
+                                    -light_direction);
+                                    if let Some(shadow_intersection) = scene.cast(&shadow_ray) {
+                                        if shadow_intersection.time_of_flight < r2.sqrt() as f64 {continue;}
+                                        }
+                                }
+                            }
+
+                            pixel_color = pixel_color + lambret_cosine_law(intersection.normal,
+                                                    -light_direction,
+                                                    light_intensity,
+                                                    light_color,
+                                                    element.material.color,
+                                                    element.material.albedo);
+                        }
+                        pixel_buffer[i * camera.image_size.1 + j] = pixel_color;
                     }
                 }
             }
-
         }
     }
     let mut image = RgbaImage::new(camera.image_size.0 as u32, camera.image_size.1 as u32);
@@ -109,6 +118,6 @@ fn lambret_cosine_law(surface_normal : V3, direction_to_light :V3, light_intensi
     let cos_theta = V3::dot(surface_normal, direction_to_light).max(0.0) as f32;
     let light_power = light_intensity * cos_theta;
     let light_reflected = element_albedo / std::f32::consts::PI;
-    element_color * light_color * light_power * light_reflected
+    (element_color * light_color * light_power * light_reflected)
 
 }

@@ -49,10 +49,15 @@ fn main() {
 
     //add lights
     let mut lights : Vec<Light> = Vec::new();
-    let light = Light::Directional(DirectionalLight { direction: V3::new([1.0, -1.0, -1.0]).normalize(),
-                                                             color: Color::white(),
+    let dir_light1 = Light::Directional(DirectionalLight { direction: V3::new([1.0, -1.0, -1.0]).normalize(),
+                                                             color: Color::yellow(),
                                                              intensity: 1.0 });
-    lights.push(light);
+    lights.push(dir_light1);
+    let dir_light2 = Light::Directional(DirectionalLight { direction: V3::new([-1.0, 1.0, -1.0]).normalize(),
+    color: Color::blue(),
+    intensity: 5.0 });
+    lights.push(dir_light2);
+    
     
     let scene = Scene::new(elements, lights);
     let depth_image = render_depth(&camera, &scene);
