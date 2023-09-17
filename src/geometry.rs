@@ -81,14 +81,18 @@ impl fmt::Display for Ray {
 pub struct Plane {
     pub center: V3,
     pub normal: V3,
+    pub u: V3,
+    pub v: V3,
 }
 
 impl Plane {
-    pub fn new(center: V3, normal: V3) -> Plane {
-        assert!(normal.is_unit_length());
+    pub fn new(pose : SE3) -> Plane {
+        let R = pose.r.R;
         Plane {
-            center: center,
-            normal: normal,
+            center: pose.t,
+            normal: R.get_col(2),
+            u: R.get_col(0),
+            v: R.get_col(1),
         }
     }
 

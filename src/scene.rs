@@ -239,6 +239,7 @@ pub struct Intersection {
     pub time_of_flight : f64,
     pub normal : V3,
     pub point : V3,
+    pub texture_coords : (f32, f32)
 }
 
 pub trait Intersectable {
@@ -255,10 +256,14 @@ impl Intersectable for Plane{
         let num = V3::dot(self.normal, self.center - ray.origin);
         let t = num / denum;
         if t > 0.0 {
+            let intersection_point = ray.origin + t * ray.direction;
+            let tex_x = (intersection_point[0] - self.center[0]) as f32;
+            let tex_y = (intersection_point[1] - self.center[1]) as f32;
             return Some(Intersection{
                 time_of_flight : t,
                 normal : self.normal,
-                point : ray.origin + t * ray.direction
+                point : intersection_point,
+                texture_coords: (tex_x, tex_y),
             });
         }
         return None;
@@ -284,10 +289,17 @@ impl Intersectable for Sphere {
         let time_of_flight = l_d_t - (r2-s2).sqrt();
         let normal = (ray.origin + time_of_flight * ray.direction - self.center).normalize();
 
+        let intersection_point = ray.origin + time_of_flight * ray.direction;
+        let phi = intersection_point[2].atan2(intersection_point[0]);
+        let theta = (intersection_point[1]/self.radius).acos();
+        let tex_x = ((1.0 + phi/std::f64::consts::PI) * 0.5) as f32;
+        let tex_y = (theta/std::f64::consts::PI) as f32;
+
         Some(Intersection{
             time_of_flight: time_of_flight,
             normal: normal,
-            point: ray.origin + time_of_flight * ray.direction,
+            point: intersection_point,
+            texture_coords: (tex_x, tex_y),
         })
     }
 }

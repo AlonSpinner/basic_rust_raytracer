@@ -4,6 +4,7 @@ use crate::vector::V3;
 use rayon::prelude::*;
 
 const SHADOW_BIAS : f64 = 1e-10;
+const MAX_RECURSION_DEPTH: u32 = 3;
 
 pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
     let ray_bundle = camera.get_ray_bundle();
@@ -117,8 +118,8 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
 fn lambret_cosine_law(surface_normal : V3, direction_to_light :V3, light_intensity : f32, light_color : Color,
     element_color : Color, element_albedo : f32) -> Color {
     
-    // assert!(surface_normal.is_unit_length());
-    // assert!(direction_to_light.is_unit_length());
+    assert!(surface_normal.is_unit_length());
+    assert!(direction_to_light.is_unit_length());
     
     let cos_theta = V3::dot(surface_normal, direction_to_light).max(0.0) as f32;
     let light_power = light_intensity * cos_theta;
