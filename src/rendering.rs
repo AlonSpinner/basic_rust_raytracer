@@ -6,26 +6,26 @@ use rayon::prelude::*;
 const SHADOW_BIAS : f64 = 1e-10;
 
 pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
-    let mut depth_buffer = vec![f64::INFINITY; camera.image_size.0 * camera.image_size.1];
     let ray_bundle = camera.get_ray_bundle();
-
-    let mut max_depth = 0.0f64;
-    let mut min_depth = f64::INFINITY;
-
     let camera_axis = camera.pose.r.R.get_col(2);
 
-    for i in 0..camera.image_size.0 {
-        for j in 0..camera.image_size.1 {
-            let ray = ray_bundle[i][j];
+    let depth_buffer : Vec<f64> =
+    (0..(camera.image_size.0 * camera.image_size.1))
+    .into_par_iter()
+    .map(|index| {
+        let i = index / camera.image_size.1;
+        let j = index % camera.image_size.1;
+        let ray = ray_bundle[i][j];
 
-            if let Some(intersection) = scene.cast(&ray) {
-                let z =  intersection.time_of_flight * V3::dot(ray.direction, camera_axis);
-                depth_buffer[i * camera.image_size.1 + j] = z;
-                if z > max_depth { max_depth = z;}
-                if z < min_depth { min_depth = z;}
-            }
+        let mut z = f64::INFINITY;
+        if let Some(intersection) = scene.cast(&ray) {
+            z =  intersection.time_of_flight * V3::dot(ray.direction, camera_axis);
         }
-    }
+        z
+        }).collect();
+
+    let max_depth = depth_buffer.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+    let min_depth = depth_buffer.iter().fold(f64::INFINITY, |a, &b| a.min(b));
     let mut image = RgbaImage::new(camera.image_size.0 as u32, camera.image_size.1 as u32);
     //display inverse_depth
     let min_inv_depth = 1.0 / max_depth;
