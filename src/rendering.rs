@@ -1,6 +1,7 @@
 use crate::{scene::{Camera, Scene, Color, Intersectable, Light}, geometry::Ray};
 use image::{Rgba, RgbaImage, Pixel};
 use crate::vector::V3;
+use rayon::prelude::*;
 
 const SHADOW_BIAS : f64 = 1e-10;
 
@@ -12,6 +13,7 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
     let mut min_depth = f64::INFINITY;
 
     let camera_axis = camera.pose.r.R.get_col(2);
+
     for i in 0..camera.image_size.0 {
         for j in 0..camera.image_size.1 {
             let ray = ray_bundle[i][j];
@@ -42,63 +44,66 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
 }
 
 pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
-    let mut tof_buffer = vec![f64::INFINITY; camera.image_size.0 * camera.image_size.1];
-    let mut pixel_buffer = vec![Color::black(); camera.image_size.0 * camera.image_size.1];
     let ray_bundle = camera.get_ray_bundle();
     
-    for i in 0..camera.image_size.0 {
-        for j in 0..camera.image_size.1 {
-            let ray = ray_bundle[i][j];
+    let pixel_buffer : Vec<Color> =
+    (0..(camera.image_size.0 * camera.image_size.1))
+    .into_par_iter()
+    .map(|index| {
+        let i = index / camera.image_size.1;
+        let j = index % camera.image_size.1;
+        let ray = ray_bundle[i][j];
 
-            for element in &scene.elements {
-                if let Some(intersection) = element.geometry.intersect(&ray) {                   
-                    if intersection.time_of_flight < tof_buffer[i * camera.image_size.1 + j] {
-                        tof_buffer[i * camera.image_size.1 + j] = intersection.time_of_flight;
-
-                        let mut pixel_color = Color::black();                    
-                        for light in &scene.lights {
-                            let direction_to_light : V3;
-                            let light_color : Color;
-                            let light_intensity : f32;
-                            match light {
-                                Light::Directional(dir_light) => {
-                                    direction_to_light = -dir_light.direction;
-                                    light_color = dir_light.color;
-                                    light_intensity = dir_light.intensity;
-                                
-                                    let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
-                                    direction_to_light);
-                                    if let Some(_) = scene.cast(&shadow_ray) {continue;}
-                                
-                                }
-                                Light::Point(point_light) => {
-                                    direction_to_light = (point_light.position - intersection.point).normalize();
-                                    light_color = point_light.color;
-
-                                    let r2 = (point_light.position - intersection.point).norm2() as f32;
-                                    light_intensity = point_light.intensity / (4.0 * ::std::f32::consts::PI * r2);
-
-                                    let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
-                                    direction_to_light);
-                                    if let Some(shadow_intersection) = scene.cast(&shadow_ray) {
-                                        if shadow_intersection.time_of_flight < r2.sqrt() as f64 {continue;}
-                                        }
-                                }
+        let mut closest_tof = f64::INFINITY;
+        let mut pixel_color = Color::black();
+        for element in &scene.elements {
+            if let Some(intersection) = element.geometry.intersect(&ray) {                   
+                if intersection.time_of_flight < closest_tof {
+                    closest_tof = intersection.time_of_flight;
+                   
+                    for light in &scene.lights {
+                        let direction_to_light : V3;
+                        let light_color : Color;
+                        let light_intensity : f32;
+                        match light {
+                            Light::Directional(dir_light) => {
+                                direction_to_light = -dir_light.direction;
+                                light_color = dir_light.color;
+                                light_intensity = dir_light.intensity;
+                            
+                                let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
+                                direction_to_light);
+                                if let Some(_) = scene.cast(&shadow_ray) {continue;}
+                            
                             }
+                            Light::Point(point_light) => {
+                                direction_to_light = (point_light.position - intersection.point).normalize();
+                                light_color = point_light.color;
 
-                            pixel_color = pixel_color + lambret_cosine_law(intersection.normal,
-                                                    direction_to_light,
-                                                    light_intensity,
-                                                    light_color,
-                                                    element.material.color,
-                                                    element.material.albedo);
+                                let r2 = (point_light.position - intersection.point).norm2() as f32;
+                                light_intensity = point_light.intensity / (4.0 * ::std::f32::consts::PI * r2);
+
+                                let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
+                                direction_to_light);
+                                if let Some(shadow_intersection) = scene.cast(&shadow_ray) {
+                                    if shadow_intersection.time_of_flight < r2.sqrt() as f64 {continue;}
+                                    }
+                            }
                         }
-                        pixel_buffer[i * camera.image_size.1 + j] = pixel_color.clamp();
+
+                        pixel_color = pixel_color + lambret_cosine_law(intersection.normal,
+                                                direction_to_light,
+                                                light_intensity,
+                                                light_color,
+                                                element.material.color,
+                                                element.material.albedo);
                     }
                 }
             }
         }
-    }
+        pixel_color.clamp()
+    }).collect();
+
     let mut image = RgbaImage::new(camera.image_size.0 as u32, camera.image_size.1 as u32);
     for i in 0..camera.image_size.0 {
         for j in 0..camera.image_size.1 {

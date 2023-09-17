@@ -39,7 +39,7 @@ fn main() {
     elements.push(Element{
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(V3::default(), V3::new([0.0, 0.0, 1.0]))),
-        material : Material::color_with_defaults(Color::green()),
+        material : Material::color_with_defaults(Color::new(1.0,0.0,1.0)),
     });
 
     //add lights
