@@ -1,12 +1,12 @@
 use crate::{scene::{Camera, Scene, Color, Intersectable, Light}, geometry::Ray};
-use image::{Rgba, RgbaImage, Pixel};
+use image::{Rgb, RgbImage, Pixel};
 use crate::vector::V3;
 use rayon::prelude::*;
 
 const SHADOW_BIAS : f64 = 1e-10;
 const MAX_RECURSION_DEPTH: u32 = 3;
 
-pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
+pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbImage {
     let ray_bundle = camera.get_ray_bundle();
     let camera_axis = camera.pose.r.R.get_col(2);
 
@@ -27,7 +27,7 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
 
     let max_depth = depth_buffer.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
     let min_depth = depth_buffer.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-    let mut image = RgbaImage::new(camera.image_size.0 as u32, camera.image_size.1 as u32);
+    let mut image = RgbImage::new(camera.image_size.0 as u32, camera.image_size.1 as u32);
     //display inverse_depth
     let min_inv_depth = 1.0 / max_depth;
     let max_inv_depth = 1.0 / min_depth;
@@ -37,14 +37,14 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbaImage {
             let inv_depth = 1.0 / depth;
             let mapped_inv_depth = (inv_depth - min_inv_depth) / (max_inv_depth - min_inv_depth);
             let u8_inv_depth = (mapped_inv_depth * 255.0) as u8;
-            let pixel = Rgba::from_channels(u8_inv_depth, u8_inv_depth, u8_inv_depth, 255);
+            let pixel = Rgb::from_channels(u8_inv_depth, u8_inv_depth, u8_inv_depth, 255);
             image.put_pixel(i as u32, j as u32, pixel);
         }
     }
     return image;
 }
 
-pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
+pub fn render_image(camera: &Camera, scene: &Scene) -> RgbImage {
     let ray_bundle = camera.get_ray_bundle();
     
     let pixel_buffer : Vec<Color> =
@@ -96,7 +96,7 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
                                                 direction_to_light,
                                                 light_intensity,
                                                 light_color,
-                                                element.material.color,
+                                                element.material.coloration.color(intersection.texture_coords),
                                                 element.material.albedo);
                     }
                 }
@@ -105,7 +105,7 @@ pub fn render_image(camera: &Camera, scene: &Scene) -> RgbaImage {
         pixel_color.clamp()
     }).collect();
 
-    let mut image = RgbaImage::new(camera.image_size.0 as u32, camera.image_size.1 as u32);
+    let mut image = RgbImage::new(camera.image_size.0 as u32, camera.image_size.1 as u32);
     for i in 0..camera.image_size.0 {
         for j in 0..camera.image_size.1 {
             let color = pixel_buffer[i * camera.image_size.1 + j];

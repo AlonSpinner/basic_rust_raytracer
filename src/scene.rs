@@ -1,6 +1,6 @@
 use std::ops::{Add, Mul};
 use image;
-use image::{Pixel, Rgba};
+use image::{Pixel, Rgb, RgbImage};
 
 use crate::EPSILON;
 use crate::matrix::Matrix33;
@@ -77,9 +77,9 @@ impl Color {
     }
 }
 
-impl Into<Rgba<u8>> for Color {
-    fn into(self) -> Rgba<u8> {
-        Rgba::from_channels(
+impl Into<Rgb<u8>> for Color {
+    fn into(self) -> Rgb<u8> {
+        Rgb::from_channels(
             (gamma_encode(self.r) * 255.0) as u8,
             (gamma_encode(self.g) * 255.0) as u8,
             (gamma_encode(self.b) * 255.0) as u8,
@@ -88,15 +88,17 @@ impl Into<Rgba<u8>> for Color {
     }
 }
 
-impl From<Rgba<u8>> for Color {
-    fn from(rgba: Rgba<u8>) -> Self {
+impl From<Rgb<u8>> for Color {
+    fn from(rgb: Rgb<u8>) -> Self {
         Color {
-            r: gamma_decode(rgba.data[0] as f32 / 255.0),
-            g: gamma_decode(rgba.data[1] as f32 / 255.0),
-            b: gamma_decode(rgba.data[2] as f32 / 255.0),
+            r: gamma_decode(rgb.data[0] as f32 / 255.0),
+            g: gamma_decode(rgb.data[1] as f32 / 255.0),
+            b: gamma_decode(rgb.data[2] as f32 / 255.0),
         }
     }
 }
+
+
 
 impl Add for Color {
     type Output = Self;
@@ -219,8 +221,39 @@ pub enum SurfaceType {
 }
 
 #[derive(Debug)]
+pub enum Coloration {
+    Color(Color),
+    Texture(RgbImage)
+}
+
+fn wrap(val: f32, bound: u32) -> u32 {
+    let signed_bound = bound as i32;
+    let float_coord = val * (bound as f32);
+    let wrapped_coord = (float_coord as i32) % signed_bound;
+    if wrapped_coord < 0 {
+        (wrapped_coord + signed_bound) as u32
+    } else {
+        wrapped_coord as u32
+    }
+}
+
+impl Coloration {
+    pub fn color(&self, texture_coords: (f32, f32)) -> Color {
+        match self {
+            Coloration::Color(color) => *color,
+            Coloration::Texture(texture) => {
+                let x = wrap(texture_coords.0/2.0, texture.width());
+                let y = wrap(texture_coords.1/2.0, texture.height());
+                let pixel = texture.get_pixel(x, y);
+                Color::from(pixel.to_rgb())
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Material{
-    pub color : Color,
+    pub coloration : Coloration,
     pub albedo : f32,
     pub surface_type : SurfaceType
 }
@@ -228,7 +261,7 @@ pub struct Material{
 impl Material {
     pub fn color_with_defaults(color : Color) -> Self {
         Material {
-            color : color,
+            coloration : Coloration::Color(color),
             albedo : 0.18,
             surface_type : SurfaceType::Diffuse
         }
@@ -379,10 +412,10 @@ pub mod tests{
         assert_eq!(red * 2.0, red);
         assert_eq!(half_green * 2.0, green);
 
-        //io into RGBA
-        let red_rgba: Rgba<u8> = red.into();
-        assert_eq!(red_rgba, Rgba::from_channels(255, 0, 0, 255));
-        let red_color: Color = red_rgba.into();
+        //io into RGB
+        let red_rgb: Rgb<u8> = red.into();
+        assert_eq!(red_rgb, Rgb::from_channels(255, 0, 0, 255));
+        let red_color: Color = red_rgb.into();
         assert_eq!(red_color, red);
     }
 

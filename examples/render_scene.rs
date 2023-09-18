@@ -2,9 +2,9 @@ use raytracing_tutorial::geometry::{Sphere, SE3, Plane};
 use raytracing_tutorial::matrix::Matrix33;
 use raytracing_tutorial::vector::{V3};
 use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry,
-     SurfaceType, Color, Light, DirectionalLight, PointLight};
+     SurfaceType, Color, Light, DirectionalLight, PointLight, Coloration};
+use image::RgbImage;
 use raytracing_tutorial::rendering::{render_depth,render_image};
-use rand;
 
 #[allow(non_snake_case)]
 fn main() {
@@ -36,10 +36,14 @@ fn main() {
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-2.5, -0.5, 0.5]), 0.5)),
         material : Material::color_with_defaults(Color::blue()),
     });
+
+    let plane_image = image::open("examples/floor_texture.jpg").unwrap().to_rgb();
     elements.push(Element{
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
-        material : Material::color_with_defaults(Color::new(1.0,0.0,1.0)),
+        material : Material{coloration: Coloration::Texture(plane_image),
+             surface_type: SurfaceType::Diffuse,
+             albedo: 0.5},
     });
 
     //add lights
