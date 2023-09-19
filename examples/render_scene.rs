@@ -2,7 +2,7 @@ use raytracing_tutorial::geometry::{Sphere, SE3, Plane};
 use raytracing_tutorial::matrix::Matrix33;
 use raytracing_tutorial::vector::{V3};
 use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry,
-     SurfaceType, Color, Light, DirectionalLight, PointLight, Coloration};
+     SurfaceType, Color, Light, DirectionalLight, PointLight, Coloration, Texture};
 use image::RgbImage;
 use raytracing_tutorial::rendering::{render_depth,render_image};
 
@@ -41,7 +41,7 @@ fn main() {
     elements.push(Element{
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
-        material : Material{coloration: Coloration::Texture(plane_image),
+        material : Material{coloration: Coloration::Texture(Texture{image : plane_image, width: 1.0, height: 1.0}),
              surface_type: SurfaceType::Diffuse,
              albedo: 0.5},
     });

@@ -221,20 +221,60 @@ pub enum SurfaceType {
 }
 
 #[derive(Debug)]
-pub enum Coloration {
-    Color(Color),
-    Texture(RgbImage)
+pub struct Texture {
+    pub image : RgbImage,
+    pub width : f32,
+    pub height : f32,
 }
 
-fn wrap(val: f32, bound: u32) -> u32 {
-    let signed_bound = bound as i32;
-    let float_coord = val * (bound as f32);
-    let wrapped_coord = (float_coord as i32) % signed_bound;
-    if wrapped_coord < 0 {
-        (wrapped_coord + signed_bound) as u32
+#[derive(Debug)]
+pub enum Coloration {
+    Color(Color),
+    Texture(Texture),
+}
+
+fn wrap(x: f32, width: f32) -> f32 {
+    let wrapped_x = x % width;
+    if wrapped_x < 0.0 {
+        wrapped_x + width
     } else {
-        wrapped_coord as u32
+        wrapped_x
     }
+}
+
+fn bilinear_interpolation(xy : (f32, f32), image : &RgbImage) -> Rgb<u8> {
+    let x = xy.0;
+    let y = xy.1;
+    
+    let pixel_xy = [(x.floor() as u32, y.floor() as u32),
+                                    (x.ceil() as u32, y.floor() as u32),
+                                    (x.floor() as u32, y.ceil() as u32),
+                                    (x.ceil() as u32, y.ceil() as u32)];
+    let pixel_vals = [image.get_pixel(pixel_xy[0].0, pixel_xy[0].1),
+                image.get_pixel(pixel_xy[1].0, pixel_xy[1].1),
+                image.get_pixel(pixel_xy[2].0, pixel_xy[2].1),
+                image.get_pixel(pixel_xy[3].0, pixel_xy[3].1)];
+
+    let mut r: f32 = 0.0;
+    let mut g: f32 = 0.0;
+    let mut b: f32 = 0.0;
+    let weight_sum : f32 = 0.0;
+    
+    for i in 0..4 {
+        let x = pixel_xy[i].0 as f32;
+        let y = pixel_xy[i].1 as f32;
+        let w = (x - xy.0) * (y - xy.1);
+
+        r += pixel_vals[i].data[0] as f32 * w;
+        g += pixel_vals[i].data[1] as f32 * w;
+        b += pixel_vals[i].data[2] as f32 * w;    
+    }
+
+    r /= weight_sum;
+    g /= weight_sum;
+    b /= weight_sum;
+
+    Rgb([r as u8, g as u8, b as u8])
 }
 
 impl Coloration {
@@ -242,9 +282,9 @@ impl Coloration {
         match self {
             Coloration::Color(color) => *color,
             Coloration::Texture(texture) => {
-                let x = wrap(texture_coords.0/2.0, texture.width());
-                let y = wrap(texture_coords.1/2.0, texture.height());
-                let pixel = texture.get_pixel(x, y);
+                let x = wrap(texture_coords.0, texture.width);
+                let y = wrap(texture_coords.1, texture.height);
+                let pixel = bilinear_interpolation((x,y), &texture.image);
                 Color::from(pixel.to_rgb())
             }
         }
