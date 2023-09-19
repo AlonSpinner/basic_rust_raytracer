@@ -223,8 +223,7 @@ pub enum SurfaceType {
 #[derive(Debug)]
 pub struct Texture {
     pub image : RgbImage,
-    pub width : f32,
-    pub height : f32,
+    pub tile : (f32, f32),
 }
 
 #[derive(Debug)]
@@ -236,45 +235,65 @@ pub enum Coloration {
 fn wrap(x: f32, width: f32) -> f32 {
     let wrapped_x = x % width;
     if wrapped_x < 0.0 {
-        wrapped_x + width
+        (wrapped_x + width)/width
     } else {
-        wrapped_x
+        wrapped_x/width
     }
 }
 
-fn bilinear_interpolation(xy : (f32, f32), image : &RgbImage) -> Rgb<u8> {
-    let x = xy.0;
+fn bilinear_pixel_interpolation(xy : (f32, f32), image : &RgbImage) -> Rgb<u8> {
+    let x: f32 = xy.0;
     let y = xy.1;
-    
-    let pixel_xy = [(x.floor() as u32, y.floor() as u32),
-                                    (x.ceil() as u32, y.floor() as u32),
-                                    (x.floor() as u32, y.ceil() as u32),
-                                    (x.ceil() as u32, y.ceil() as u32)];
-    let pixel_vals = [image.get_pixel(pixel_xy[0].0, pixel_xy[0].1),
-                image.get_pixel(pixel_xy[1].0, pixel_xy[1].1),
-                image.get_pixel(pixel_xy[2].0, pixel_xy[2].1),
-                image.get_pixel(pixel_xy[3].0, pixel_xy[3].1)];
 
-    let mut r: f32 = 0.0;
-    let mut g: f32 = 0.0;
-    let mut b: f32 = 0.0;
-    let weight_sum : f32 = 0.0;
-    
-    for i in 0..4 {
-        let x = pixel_xy[i].0 as f32;
-        let y = pixel_xy[i].1 as f32;
-        let w = (x - xy.0) * (y - xy.1);
-
-        r += pixel_vals[i].data[0] as f32 * w;
-        g += pixel_vals[i].data[1] as f32 * w;
-        b += pixel_vals[i].data[2] as f32 * w;    
+    //check if xy are integers
+    if x.fract() == 0.0 && y.fract() == 0.0 {
+        return *image.get_pixel(x as u32, y as u32);
+    }
+    else if x.fract() == 0.0 {
+        let y1 = y.floor() as u32;
+        let y2 = y.ceil() as u32;
+        let q1 = image.get_pixel(x as u32, y1);
+        let q2 = image.get_pixel(x as u32, y2);
+        let w1 = y2 as f32 - y;
+        let w2 = y - y1 as f32;
+        let r = w1 * q1.data[0] as f32 + w2 * q2.data[0] as f32;
+        let g = w1 * q1.data[1] as f32 + w2 * q2.data[1] as f32;
+        let b = w1 * q1.data[2] as f32 + w2 * q2.data[2] as f32;
+        return Rgb([r.round() as u8, g.round() as u8, b.round() as u8]);
+    } else if y.fract() == 0.0 {
+        let x1 = x.floor() as u32;
+        let x2 = x.ceil() as u32;
+        let q1 = image.get_pixel(x1, y as u32);
+        let q2 = image.get_pixel(x2, y as u32);
+        let w1 = x2 as f32 - x;
+        let w2 = x - x1 as f32;
+        let r = w1 * q1.data[0] as f32 + w2 * q2.data[0] as f32;
+        let g = w1 * q1.data[1] as f32 + w2 * q2.data[1] as f32;
+        let b = w1 * q1.data[2] as f32 + w2 * q2.data[2] as f32;
+        return Rgb([r.round() as u8, g.round() as u8, b.round() as u8]);
     }
 
-    r /= weight_sum;
-    g /= weight_sum;
-    b /= weight_sum;
+    let x1 = x.floor() as u32;
+    let y1 = y.floor() as u32;
+    let x2 = x.ceil() as u32;
+    let y2 = y.ceil() as u32;
 
-    Rgb([r as u8, g as u8, b as u8])
+    let q11 = image.get_pixel(x1, y1);
+    let q12 = image.get_pixel(x1, y2);
+    let q21 = image.get_pixel(x2, y1);
+    let q22 = image.get_pixel(x2, y2);
+
+    let w11 = (x2 as f32 - x) * (y2 as f32 - y);
+    let w12 = (x2 as f32 - x) * (y - y1 as f32);
+    let w21 = (x - x1 as f32) * (y2 as f32 - y);
+    let w22 = (x - x1 as f32) * (y - y1 as f32);
+    let denum = (x2 as f32 - x1 as f32) * (y2 as f32 - y1 as f32);
+
+    let r = (w11 * q11.data[0] as f32 + w12 * q12.data[0] as f32 + w21 * q21.data[0] as f32 + w22 * q22.data[0] as f32) / denum;
+    let g = (w11 * q11.data[1] as f32 + w12 * q12.data[1] as f32 + w21 * q21.data[1] as f32 + w22 * q22.data[1] as f32) / denum;
+    let b = (w11 * q11.data[2] as f32 + w12 * q12.data[2] as f32 + w21 * q21.data[2] as f32 + w22 * q22.data[2] as f32) / denum;
+
+    Rgb([r.round() as u8, g.round() as u8, b.round() as u8])
 }
 
 impl Coloration {
@@ -282,9 +301,12 @@ impl Coloration {
         match self {
             Coloration::Color(color) => *color,
             Coloration::Texture(texture) => {
-                let x = wrap(texture_coords.0, texture.width);
-                let y = wrap(texture_coords.1, texture.height);
-                let pixel = bilinear_interpolation((x,y), &texture.image);
+                let r_x = wrap(texture_coords.0, texture.tile.0);
+                let r_y = wrap(texture_coords.1, texture.tile.1);
+                let x = r_x * texture.image.width() as f32;
+                let y = r_y * texture.image.height() as f32;
+                // let pixel = bilinear_pixel_interpolation((x,y), &texture.image);
+                let pixel = texture.image.get_pixel(x as u32, y as u32);
                 Color::from(pixel.to_rgb())
             }
         }
@@ -365,8 +387,8 @@ impl Intersectable for Sphere {
         let intersection_point = ray.origin + time_of_flight * ray.direction;
         let phi = intersection_point[2].atan2(intersection_point[0]);
         let theta = (intersection_point[1]/self.radius).acos();
-        let tex_x = ((1.0 + phi/std::f64::consts::PI) * 0.5) as f32;
-        let tex_y = (theta/std::f64::consts::PI) as f32;
+        let tex_x = ((1.0 + phi/std::f64::consts::PI) * 0.5) as f32; //normalize to [0,1]
+        let tex_y = (theta/std::f64::consts::PI) as f32; // normalize to [0,1]
 
         Some(Intersection{
             time_of_flight: time_of_flight,

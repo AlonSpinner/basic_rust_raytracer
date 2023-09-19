@@ -13,18 +13,21 @@ fn main() {
     let target = V3::new([0.0, 0.0, 1.0]);
     let up = V3::new([0.0, 0.0, 1.0]);
     let pose = SE3::from_eye_target_up(eye, target, up);
-    let image_size : (usize, usize) = (1920/2, 1080/2);
-    let K = Matrix33::new([[600.0, 0.0, image_size.0 as f64/2.0],
-                                            [0.0, 600.0, image_size.1 as f64/2.0],
+    let image_size : (usize, usize) = (1920, 1080);
+    let K = Matrix33::new([[1200.0, 0.0, image_size.0 as f64/2.0],
+                                            [0.0, 1200.0, image_size.1 as f64/2.0],
                                             [0.0, 0.0, 1.0]]);
     let camera = Camera::new(pose, image_size, K);
 
     //add elements
     let mut elements : Vec<Element> = Vec::new();
+    let marble_image = image::open("examples/marble_texture.jpg").unwrap().to_rgb();
     elements.push(Element{
         name : format!("sphere1"),
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([2.0, 0.0, 1.5]), 1.5)),
-        material : Material::color_with_defaults(Color::red()),
+        material : Material{coloration: Coloration::Texture(Texture{image : marble_image, tile : (4.0, 4.0)}),
+             surface_type: SurfaceType::Diffuse,
+             albedo: 0.5},
     });
     elements.push(Element{
         name : format!("sphere2"),
@@ -37,11 +40,11 @@ fn main() {
         material : Material::color_with_defaults(Color::blue()),
     });
 
-    let plane_image = image::open("examples/floor_texture.jpg").unwrap().to_rgb();
+    let floor_image = image::open("examples/floor_texture.jpg").unwrap().to_rgb();
     elements.push(Element{
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
-        material : Material{coloration: Coloration::Texture(Texture{image : plane_image, width: 1.0, height: 1.0}),
+        material : Material{coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)}),
              surface_type: SurfaceType::Diffuse,
              albedo: 0.5},
     });
