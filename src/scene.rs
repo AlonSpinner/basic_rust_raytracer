@@ -7,7 +7,6 @@ use crate::matrix::Matrix33;
 use crate::vector::{V2,V3};
 use crate::geometry::{Sphere, Plane, SO3, SE3, Ray};
 
-
 const GAMMA: f32 = 2.2;
 
 fn gamma_encode(linear: f32) -> f32 {
@@ -18,7 +17,7 @@ fn gamma_decode(encoded: f32) -> f32 {
     encoded.powf(GAMMA)
 }
 
-fn clamp(x: f32, min: f32, max: f32) -> f32 {
+fn clamp<T: PartialOrd>(x: T, min: T, max: T) -> T {
     if x < min {
         min
     } else if x > max {
@@ -232,7 +231,7 @@ pub enum Coloration {
     Texture(Texture),
 }
 
-fn wrap(x: f32, width: f32) -> f32 {
+fn compute_rational_texture_coord(x: f32, width: f32) -> f32 {
     let wrapped_x = x % width;
     if wrapped_x < 0.0 {
         (wrapped_x + width)/width
@@ -245,13 +244,16 @@ fn bilinear_pixel_interpolation(xy : (f32, f32), image : &RgbImage) -> Rgb<u8> {
     let x: f32 = xy.0;
     let y = xy.1;
 
+    let image_width = image.width();
+    let image_height = image.height();
+
     //check if xy are integers
     if x.fract() == 0.0 && y.fract() == 0.0 {
         return *image.get_pixel(x as u32, y as u32);
     }
     else if x.fract() == 0.0 {
-        let y1 = y.floor() as u32;
-        let y2 = y.ceil() as u32;
+        let y1 = clamp(y.floor() as u32,0, image_height-1);
+        let y2 = clamp(y.ceil() as u32, 0, image_height-1);
         let q1 = image.get_pixel(x as u32, y1);
         let q2 = image.get_pixel(x as u32, y2);
         let w1 = y2 as f32 - y;
@@ -261,8 +263,8 @@ fn bilinear_pixel_interpolation(xy : (f32, f32), image : &RgbImage) -> Rgb<u8> {
         let b = w1 * q1.data[2] as f32 + w2 * q2.data[2] as f32;
         return Rgb([r.round() as u8, g.round() as u8, b.round() as u8]);
     } else if y.fract() == 0.0 {
-        let x1 = x.floor() as u32;
-        let x2 = x.ceil() as u32;
+        let x1 = clamp(x.floor() as u32,0,image_width-1);
+        let x2 = clamp(x.ceil() as u32,0, image_width-1);
         let q1 = image.get_pixel(x1, y as u32);
         let q2 = image.get_pixel(x2, y as u32);
         let w1 = x2 as f32 - x;
@@ -273,10 +275,10 @@ fn bilinear_pixel_interpolation(xy : (f32, f32), image : &RgbImage) -> Rgb<u8> {
         return Rgb([r.round() as u8, g.round() as u8, b.round() as u8]);
     }
 
-    let x1 = x.floor() as u32;
-    let y1 = y.floor() as u32;
-    let x2 = x.ceil() as u32;
-    let y2 = y.ceil() as u32;
+    let x1 = clamp(x.floor() as u32,0, image_width-1);
+    let y1 = clamp(y.floor() as u32,0, image_height-1);
+    let x2 = clamp(x.ceil() as u32,0, image_width-1);
+    let y2 = clamp(y.ceil() as u32,0, image_height-1);
 
     let q11 = image.get_pixel(x1, y1);
     let q12 = image.get_pixel(x1, y2);
@@ -301,12 +303,12 @@ impl Coloration {
         match self {
             Coloration::Color(color) => *color,
             Coloration::Texture(texture) => {
-                let r_x = wrap(texture_coords.0, texture.tile.0);
-                let r_y = wrap(texture_coords.1, texture.tile.1);
-                let x = r_x * texture.image.width() as f32;
-                let y = r_y * texture.image.height() as f32;
-                // let pixel = bilinear_pixel_interpolation((x,y), &texture.image);
-                let pixel = texture.image.get_pixel(x as u32, y as u32);
+                let r_x = compute_rational_texture_coord(texture_coords.0, texture.tile.0);
+                let r_y = compute_rational_texture_coord(texture_coords.1, texture.tile.1);
+                let x = r_x * (texture.image.width()-1) as f32;
+                let y = r_y * (texture.image.height()-1) as f32;
+                let pixel = bilinear_pixel_interpolation((x,y), &texture.image);
+                // let pixel = texture.image.get_pixel(x as u32, y as u32);
                 Color::from(pixel.to_rgb())
             }
         }
