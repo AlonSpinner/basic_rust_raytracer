@@ -43,7 +43,7 @@ fn main() {
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
         material : Material{coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)}),
-             albedo: 0.5, reflectivity : 0.0},
+             albedo: 0.5, reflectivity : 0.1},
     });
 
     //add lights

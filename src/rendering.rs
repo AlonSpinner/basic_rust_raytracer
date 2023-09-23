@@ -83,7 +83,7 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
                 if element.material.reflectivity > 0.0 {
                     let reflection_ray = ray.reflect(intersection.point + (intersection.normal * SHADOW_BIAS),
                                                                              intersection.normal);
-                    reflection_color = get_ray_color(&reflection_ray, &scene, max_ray_recursion-1) 
+                    reflection_color = get_ray_color(&reflection_ray, &scene, max_ray_recursion-1) * element.material.reflectivity;
                 }       
             }
         }
