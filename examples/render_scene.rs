@@ -3,9 +3,7 @@ use raytracing_tutorial::matrix::Matrix33;
 use raytracing_tutorial::vector::{V3};
 use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry,
      SurfaceType, Color, Light, DirectionalLight, PointLight, Coloration, Texture};
-use image::RgbImage;
 use raytracing_tutorial::rendering::{render_depth,render_image};
-use std::cmp::max;
 
 #[allow(non_snake_case)]
 fn main() {
@@ -28,7 +26,7 @@ fn main() {
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([2.0, 0.0, 1.5]), 1.5)),
         material : Material{coloration: Coloration::Texture(Texture{image : marble_image, tile : (0.5, 0.5)}),
              surface_type: SurfaceType::Diffuse,
-             albedo: 0.5},
+             albedo: 0.5, reflectivity : 0.6},
     });
     elements.push(Element{
         name : format!("sphere2"),
@@ -47,7 +45,7 @@ fn main() {
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
         material : Material{coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)}),
              surface_type: SurfaceType::Diffuse,
-             albedo: 0.5},
+             albedo: 0.5, reflectivity : 0.0},
     });
 
     //add lights
@@ -66,7 +64,7 @@ fn main() {
     //build scene and render
     let scene = Scene{elements, lights};
     let depth_image = render_depth(&camera, &scene);
-    let rgb_image = render_image(&camera, &scene);
+    let rgb_image = render_image(&camera, &scene, 3);
     
     //save images to png
     depth_image.save("depth.png").unwrap();
