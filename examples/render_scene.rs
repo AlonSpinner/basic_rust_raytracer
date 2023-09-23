@@ -1,4 +1,6 @@
-use raytracing_tutorial::geometry::{Sphere, SE3, Plane};
+use std::f32::consts::PI;
+
+use raytracing_tutorial::geometry::{Sphere, SE3, SO3, Plane};
 use raytracing_tutorial::matrix::Matrix33;
 use raytracing_tutorial::vector::V3;
 use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry,
@@ -25,7 +27,7 @@ fn main() {
         name : format!("sphere1"),
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([2.0, 0.0, 1.5]), 1.5)),
         material : Material{coloration: Coloration::Texture(Texture{image : marble_image, tile : (0.5, 0.5)}),
-             albedo: 0.5, reflectivity : 0.6},
+             albedo: 0.5, reflectivity : 0.6, refraction_index : 1.0, transparency : 0.0},
     });
     elements.push(Element{
         name : format!("sphere2"),
@@ -43,8 +45,17 @@ fn main() {
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
         material : Material{coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)}),
-             albedo: 0.5, reflectivity : 0.1},
+             albedo: 0.5, reflectivity : 0.1, refraction_index : 1.0, transparency : 0.0},
     });
+
+    
+    // let _tmp = SE3::new(SO3::Exp(V3::new([-std::f64::consts::PI* 1.0/4.0,0.0,0.0])), V3::new([0.0, 30.0, 0.0]));
+    // elements.push(Element{
+    //     name : format!("sky"),
+    //     geometry : SceneGeometry::Plane(Plane::new(_tmp)),
+    //     material : Material{coloration: Coloration::Color(Color::blue()),
+    //          albedo: 1.0, reflectivity : 0.0, refraction_index : 0.0},
+    // });
 
     //add lights
     let mut lights : Vec<Light> = Vec::new();

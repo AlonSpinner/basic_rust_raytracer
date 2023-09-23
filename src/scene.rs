@@ -313,6 +313,8 @@ pub struct Material{
     pub coloration : Coloration,
     pub albedo : f32,
     pub reflectivity : f32,
+    pub transparency : f32,
+    pub refraction_index : f64,
 }
 
 impl Material {
@@ -321,6 +323,8 @@ impl Material {
             coloration : Coloration::Color(color),
             albedo : 0.18,
             reflectivity : 0.0,
+            transparency : 0.0,
+            refraction_index : 1.0,
         }
     }
 }
@@ -363,6 +367,9 @@ impl Intersectable for Plane{
 impl Intersectable for Sphere {
     fn intersect(&self, ray: &Ray) -> Option<Intersection> {
         let l = self.center - ray.origin;
+        if l.norm() < self.radius {
+            return None;  // Ray origin is inside the sphere
+        }
         
         let l_d_t = V3::dot(l, ray.direction);
         if l_d_t < 0.0 {

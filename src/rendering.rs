@@ -55,7 +55,7 @@ pub fn render_image(camera: &Camera, scene: &Scene, max_ray_recursion : usize) -
         let j = index % camera.image_size.1;
         let ray = ray_bundle[i][j];
 
-        let pixel_color = get_ray_color(&ray, &scene, max_ray_recursion);
+        let pixel_color = get_ray_color(&ray, &scene, max_ray_recursion, 1.0);
         pixel_color
     }).collect();
 
@@ -69,7 +69,7 @@ pub fn render_image(camera: &Camera, scene: &Scene, max_ray_recursion : usize) -
     return image;
 }
 
-fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color {
+fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize, refraction_index : f64) -> Color {
     let mut closest_tof = f64::INFINITY;
     let mut diffuse_color = Color::black();
     let mut refractive_color = Color::black();
@@ -77,14 +77,33 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
     for element in &scene.elements {
         if let Some(intersection) = element.geometry.intersect(&ray) {                   
             if intersection.time_of_flight < closest_tof {
+                let shadow_point = intersection.point + V3::dot(intersection.normal, ray.direction) * intersection.normal * SHADOW_BIAS;
                 closest_tof = intersection.time_of_flight;
-                diffuse_color = compute_diffuse(&intersection, &element.material, &scene);
+                
+                diffuse_color = compute_diffuse_color(&intersection, &element.material, &scene);
+                
+                if max_ray_recursion > 0 {
+                    let kr = fresnel(ray.direction, intersection.normal, element.material.refraction_index);
+                    if kr < 1.0 {
+                        if let Some(transmission_ray) = ray.transmit(shadow_point, intersection.normal,
+                             refraction_index, element.material.refraction_index) {
+                                refractive_color = get_ray_color(&transmission_ray,
+                                                                 &scene,
+                                                                max_ray_recursion-1,
+                                                                     element.material.refraction_index) * (1.0 - kr as f32);
+                             }
+                        
+                    }
 
-                if element.material.reflectivity > 0.0 {
-                    let reflection_ray = ray.reflect(intersection.point + (intersection.normal * SHADOW_BIAS),
-                                                                             intersection.normal);
-                    reflection_color = get_ray_color(&reflection_ray, &scene, max_ray_recursion-1) * element.material.reflectivity;
-                }       
+                    if element.material.reflectivity > 0.0 {
+                        let reflection_ray = ray.reflect(shadow_point,intersection.normal);
+                        reflection_color = get_ray_color(&reflection_ray,
+                                                         &scene,
+                                                          max_ray_recursion-1,
+                                                        element.material.refraction_index) * (kr as f32);
+                    }
+
+                }
             }
         }
     }
@@ -92,7 +111,7 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
     pixel_color.clamp()
 }
 
-fn compute_diffuse(intersection : &Intersection, material : &Material,  scene : &Scene) -> Color {
+fn compute_diffuse_color(intersection : &Intersection, material : &Material,  scene : &Scene) -> Color {
     let mut pixel_color = Color::black();
     for light in &scene.lights {
         let direction_to_light : V3;
@@ -145,4 +164,26 @@ fn lambret_cosine_law(surface_normal : V3, direction_to_light :V3, light_intensi
     let light_power = light_intensity * cos_theta;
     let light_reflected = element_albedo / std::f32::consts::PI;
     (element_color * light_color * light_power * light_reflected).clamp()
+}
+
+fn fresnel(incident: V3, normal: V3, index: f64) -> f64 {
+    let i_dot_n = V3::dot(incident,normal);
+    let mut eta_i = 1.0;
+    let mut eta_t = index as f64;
+    if i_dot_n > 0.0 {
+        eta_i = eta_t;
+        eta_t = 1.0;
+    }
+
+    let sin_t = eta_i / eta_t * (1.0 - i_dot_n * i_dot_n).max(0.0).sqrt();
+    if sin_t > 1.0 {
+        //Total internal reflection
+        return 1.0;
+    } else {
+        let cos_t = (1.0 - sin_t * sin_t).max(0.0).sqrt();
+        let cos_i = cos_t.abs();
+        let r_s = ((eta_t * cos_i) - (eta_i * cos_t)) / ((eta_t * cos_i) + (eta_i * cos_t));
+        let r_p = ((eta_i * cos_i) - (eta_t * cos_t)) / ((eta_i * cos_i) + (eta_t * cos_t));
+        return (r_s * r_s + r_p * r_p) / 2.0;
+    }
 }

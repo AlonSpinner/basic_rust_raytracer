@@ -85,6 +85,7 @@ pub struct Plane {
     pub v: V3,
 }
 
+#[allow(non_snake_case)]
 impl Plane {
     pub fn new(pose : SE3) -> Plane {
         let R = pose.r.R;
