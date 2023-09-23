@@ -81,11 +81,9 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
                 diffuse_color = compute_diffuse(&intersection, &element.material, &scene);
 
                 if element.material.reflectivity > 0.0 {
-                    for i in 0..max_ray_recursion {
-                        let reflection_ray = ray.reflect(intersection.point, intersection.normal);
-                        reflection_color = reflection_color + get_ray_color(&reflection_ray, &scene, max_ray_recursion-1) 
-                                                                * (element.material.reflectivity).powi((i+1) as i32);
-                        }
+                    let reflection_ray = ray.reflect(intersection.point + (intersection.normal * SHADOW_BIAS),
+                                                                             intersection.normal);
+                    reflection_color = get_ray_color(&reflection_ray, &scene, max_ray_recursion-1) 
                 }       
             }
         }

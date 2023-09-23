@@ -1,8 +1,8 @@
 use raytracing_tutorial::geometry::{Sphere, SE3, Plane};
 use raytracing_tutorial::matrix::Matrix33;
-use raytracing_tutorial::vector::{V3};
+use raytracing_tutorial::vector::V3;
 use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry,
-     SurfaceType, Color, Light, DirectionalLight, PointLight, Coloration, Texture};
+     Color, Light, DirectionalLight, PointLight, Coloration, Texture};
 use raytracing_tutorial::rendering::{render_depth,render_image};
 
 #[allow(non_snake_case)]
@@ -25,7 +25,6 @@ fn main() {
         name : format!("sphere1"),
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([2.0, 0.0, 1.5]), 1.5)),
         material : Material{coloration: Coloration::Texture(Texture{image : marble_image, tile : (0.5, 0.5)}),
-             surface_type: SurfaceType::Diffuse,
              albedo: 0.5, reflectivity : 0.6},
     });
     elements.push(Element{
@@ -44,7 +43,6 @@ fn main() {
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
         material : Material{coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)}),
-             surface_type: SurfaceType::Diffuse,
              albedo: 0.5, reflectivity : 0.0},
     });
 

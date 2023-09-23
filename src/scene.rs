@@ -213,13 +213,6 @@ impl Camera {
 }
 
 #[derive(Debug)]
-pub enum SurfaceType {
-    Diffuse,
-    Reflective,
-    Refractive,
-}
-
-#[derive(Debug)]
 pub struct Texture {
     pub image : RgbImage,
     pub tile : (f32, f32),
@@ -320,7 +313,6 @@ pub struct Material{
     pub coloration : Coloration,
     pub albedo : f32,
     pub reflectivity : f32,
-    pub surface_type : SurfaceType
 }
 
 impl Material {
@@ -329,7 +321,6 @@ impl Material {
             coloration : Coloration::Color(color),
             albedo : 0.18,
             reflectivity : 0.0,
-            surface_type : SurfaceType::Diffuse
         }
     }
 }
