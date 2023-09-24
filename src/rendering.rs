@@ -1,4 +1,4 @@
-use crate::{scene::{Camera, Scene, Color, Intersectable, Intersection, Light, Material},
+use crate::{scene::{Camera, Scene, Color, Intersectable, Intersection, Light, Material, Coloration},
              geometry::Ray};
 use image::{Rgb, RgbImage, Pixel};
 use crate::vector::V3;
@@ -55,7 +55,7 @@ pub fn render_image(camera: &Camera, scene: &Scene, max_ray_recursion : usize) -
         let j = index % camera.image_size.1;
         let ray = ray_bundle[i][j];
 
-        let pixel_color = get_ray_color(&ray, &scene, max_ray_recursion, 1.0);
+        let pixel_color = get_ray_color(&ray, &scene, max_ray_recursion);
         pixel_color
     }).collect();
 
@@ -69,49 +69,52 @@ pub fn render_image(camera: &Camera, scene: &Scene, max_ray_recursion : usize) -
     return image;
 }
 
-fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize, refraction_index : f64) -> Color {
+fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color {
     let mut closest_tof = f64::INFINITY;
-    let mut diffuse_color = Color::black();
-    let mut refractive_color = Color::black();
-    let mut reflection_color = Color::black();
+    let mut pixel_color  = Color::black();
     for element in &scene.elements {
         if let Some(intersection) = element.geometry.intersect(&ray) {                   
             if intersection.time_of_flight < closest_tof {
-                let shadow_point = intersection.point + V3::dot(intersection.normal, ray.direction) * intersection.normal * SHADOW_BIAS;
+                let shadow_point = intersection.point + V3::dot(intersection.normal, ray.direction) *
+                                                             intersection.normal * SHADOW_BIAS;
                 closest_tof = intersection.time_of_flight;
                 
-                diffuse_color = compute_diffuse_color(&intersection, &element.material, &scene);
-                
-                if max_ray_recursion > 0 {
-                    let kr = fresnel(ray.direction, intersection.normal, element.material.refraction_index);
-                    if kr < 1.0 {
-                        if let Some(transmission_ray) = ray.transmit(shadow_point, intersection.normal,
-                             refraction_index, element.material.refraction_index) {
-                                refractive_color = get_ray_color(&transmission_ray,
-                                                                 &scene,
-                                                                max_ray_recursion-1,
-                                                                     element.material.refraction_index) * (1.0 - kr as f32);
-                             }
-                        
-                    }
+                match &element.material {
+                    Material::Diffuse { albedo, coloration } => {
+                        pixel_color = compute_diffuse_color(&intersection, albedo, coloration, &scene);
+                    },
+                    Material::Reflective { reflectivity, albedo, coloration } => {
+                        let diffuse_color = compute_diffuse_color(&intersection, albedo, coloration, &scene);
+                        if max_ray_recursion != 0 {
+                            let reflection_ray = ray.reflect(shadow_point,intersection.normal);
+                            let reflection_color = get_ray_color(&reflection_ray,
+                                &scene,
+                                 max_ray_recursion-1);
+                            pixel_color = *reflectivity * reflection_color + (1.0 - *reflectivity) * diffuse_color;
 
-                    if element.material.reflectivity > 0.0 {
-                        let reflection_ray = ray.reflect(shadow_point,intersection.normal);
-                        reflection_color = get_ray_color(&reflection_ray,
-                                                         &scene,
-                                                          max_ray_recursion-1,
-                                                        element.material.refraction_index) * (kr as f32);
+                        } else  {
+                            pixel_color = (1.0 - *reflectivity) * diffuse_color;
+                        }
+                    },
+                    Material::Glass {index, transparency} => {
+                        let kr = fresnel(ray.direction, intersection.normal, *index);
+                        if kr < 1.0 {
+                            if let Some(transmission_ray) = ray.transmit(shadow_point, intersection.normal,
+                                 *index, 1.0) {
+                                    let refractive_color = get_ray_color(&transmission_ray,
+                                                                     &scene,
+                                                                    max_ray_recursion-1) * (1.0 - kr as f32);
+                                 }
+                        }
                     }
-
                 }
             }
         }
     }
-    let pixel_color = diffuse_color + reflection_color + refractive_color;
     pixel_color.clamp()
 }
 
-fn compute_diffuse_color(intersection : &Intersection, material : &Material,  scene : &Scene) -> Color {
+fn compute_diffuse_color(intersection : &Intersection, albedo : &f32, coloration : &Coloration,  scene : &Scene) -> Color {
     let mut pixel_color = Color::black();
     for light in &scene.lights {
         let direction_to_light : V3;
@@ -147,8 +150,8 @@ fn compute_diffuse_color(intersection : &Intersection, material : &Material,  sc
                                 direction_to_light,
                                 light_intensity,
                                 light_color,
-                                material.coloration.color(intersection.texture_coords),
-                                material.albedo);
+                                coloration.color(intersection.texture_coords),
+                                *albedo);
     }
     pixel_color
 

@@ -1,5 +1,3 @@
-use std::f32::consts::PI;
-
 use raytracing_tutorial::geometry::{Sphere, SE3, SO3, Plane};
 use raytracing_tutorial::matrix::Matrix33;
 use raytracing_tutorial::vector::V3;
@@ -26,17 +24,20 @@ fn main() {
     elements.push(Element{
         name : format!("sphere1"),
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([2.0, 0.0, 1.5]), 1.5)),
-        material : Material::Reflective { reflectivity: (), albedo: () }
+        material : Material::Reflective {reflectivity : 0.5,
+                                             albedo : 0.18,
+                                            coloration : Coloration::Texture(Texture{image : marble_image, tile : (1.0, 1.0)})
+                                        },
     });
     elements.push(Element{
         name : format!("sphere2"),
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-2.0, 2.0, 1.0]), 1.0)),
-        material : Material::color_with_defaults(Color::yellow()),
+        material : Material::defult_diffuse(Color::yellow()),
     });
     elements.push(Element{
         name : format!("sphere3"),
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-2.5, -0.5, 0.5]), 0.5)),
-        material : Material::color_with_defaults(Color::blue()),
+        material : Material::defult_diffuse(Color::blue()),
     });
 
     let floor_image = image::open("examples/floor_texture.jpg").unwrap().to_rgb();

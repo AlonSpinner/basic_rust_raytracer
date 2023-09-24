@@ -321,7 +321,6 @@ impl Material {
     }
 }
 
-
 pub struct Intersection {
     pub time_of_flight : f64,
     pub normal : V3,
