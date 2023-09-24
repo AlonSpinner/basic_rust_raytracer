@@ -26,8 +26,7 @@ fn main() {
     elements.push(Element{
         name : format!("sphere1"),
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([2.0, 0.0, 1.5]), 1.5)),
-        material : Material{coloration: Coloration::Texture(Texture{image : marble_image, tile : (0.5, 0.5)}),
-             albedo: 0.5, reflectivity : 0.6, refraction_index : 1.0, transparency : 0.0},
+        material : Material::Reflective { reflectivity: (), albedo: () }
     });
     elements.push(Element{
         name : format!("sphere2"),
@@ -44,8 +43,7 @@ fn main() {
     elements.push(Element{
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
-        material : Material{coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)}),
-             albedo: 0.5, reflectivity : 0.1, refraction_index : 1.0, transparency : 0.0},
+        material : Material::Diffuse { albedo: 0.18, coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)})},
     });
 
     

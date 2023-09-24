@@ -309,25 +309,18 @@ impl Coloration {
 }
 
 #[derive(Debug)]
-pub struct Material{
-    pub coloration : Coloration,
-    pub albedo : f32,
-    pub reflectivity : f32,
-    pub transparency : f32,
-    pub refraction_index : f64,
+pub enum Material{
+    Diffuse{albedo : f32, coloration : Coloration},
+    Reflective{reflectivity : f32, albedo : f32, coloration : Coloration},
+    Glass{index : f64, transparency : f32},
 }
 
 impl Material {
-    pub fn color_with_defaults(color : Color) -> Self {
-        Material {
-            coloration : Coloration::Color(color),
-            albedo : 0.18,
-            reflectivity : 0.0,
-            transparency : 0.0,
-            refraction_index : 1.0,
-        }
+    pub fn defult_diffuse(color : Color) -> Self {
+        Material::Diffuse { albedo: 0.18, coloration: Coloration::Color(color) }
     }
 }
+
 
 pub struct Intersection {
     pub time_of_flight : f64,
