@@ -75,8 +75,7 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
     for element in &scene.elements {
         if let Some(intersection) = element.geometry.intersect(&ray) {                   
             if intersection.time_of_flight < closest_tof {
-                let shadow_point = intersection.point + V3::dot(intersection.normal, ray.direction) *
-                                                             intersection.normal * SHADOW_BIAS;
+                let shadow_point = intersection.point + intersection.normal * SHADOW_BIAS;
                 closest_tof = intersection.time_of_flight;
                 
                 match &element.material {
@@ -92,7 +91,7 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
                                  max_ray_recursion-1);
                             pixel_color = *reflectivity * reflection_color + (1.0 - *reflectivity) * diffuse_color;
 
-                        } else  {
+                        } else {
                             pixel_color = (1.0 - *reflectivity) * diffuse_color;
                         }
                     },

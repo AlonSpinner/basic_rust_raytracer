@@ -359,9 +359,6 @@ impl Intersectable for Plane{
 impl Intersectable for Sphere {
     fn intersect(&self, ray: &Ray) -> Option<Intersection> {
         let l = self.center - ray.origin;
-        if l.norm() < self.radius {
-            return None;  // Ray origin is inside the sphere
-        }
         
         let l_d_t = V3::dot(l, ray.direction);
         if l_d_t < 0.0 {
@@ -375,9 +372,16 @@ impl Intersectable for Sphere {
             return None;  // Ray misses the sphere
         }
 
-        let time_of_flight = l_d_t - (r2-s2).sqrt();
-        let normal = (ray.origin + time_of_flight * ray.direction - self.center).normalize();
+        // Calculate two potential intersection times
+        let dt = (r2 - s2).sqrt();
+        let t0 = l_d_t - dt;
+        let t1 = l_d_t + dt;
 
+        // If the origin is inside the sphere, choose the larger t (exit point). 
+        // Otherwise, choose the smaller t (entry point).
+        let time_of_flight = if t0 < 0.0 { t1 } else { t0 };
+        
+        let normal = (ray.origin + time_of_flight * ray.direction - self.center).normalize();
         let intersection_point = ray.origin + time_of_flight * ray.direction;
         let phi = intersection_point[2].atan2(intersection_point[0]);
         let theta = (intersection_point[1]/self.radius).acos();
@@ -499,5 +503,25 @@ pub mod tests{
         let expected_direction = (point - camera.pose.t).normalize();
         let ray = camera.pixel_2_ray(image_point);
         assert!(V3::is_close(&ray.direction, &expected_direction, None));
+    }
+
+    #[test]
+    fn test_inside_sphere_intersection() {
+        let sphere = Sphere::new(V3::default(),2.0);
+        let eye = V3::new([0.0,0.0,1.0]);
+        let target = V3::new([2.0,0.0,0.0]);
+        let ray = Ray::new(eye, (target-eye).normalize());
+        let intersection = sphere.intersect(&ray).unwrap();
+        assert!(V3::is_close(&intersection.point, &V3::new([2.0,0.0,0.0]), None));
+    }
+
+    #[test]
+    fn test_outside_sphere_intersection() {
+        let sphere = Sphere::new(V3::zeros(),2.0);
+        let eye = V3::new([0.0,0.0,3.0]);
+        let target = V3::new([0.0,0.0,0.0]);
+        let ray = Ray::new(eye, (target-eye).normalize());
+        let intersection = sphere.intersect(&ray).unwrap();
+        assert!(V3::is_close(&intersection.point, &V3::new([0.0,0.0,2.0]), None));
     }
 }

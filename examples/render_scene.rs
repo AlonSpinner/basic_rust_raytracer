@@ -44,7 +44,8 @@ fn main() {
     elements.push(Element{
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
-        material : Material::Diffuse { albedo: 0.18, coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)})},
+        // material : Material::Diffuse { albedo: 0.18, coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)})},
+        material : Material::Reflective { reflectivity: 0.1, albedo: 0.18, coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)})},
     });
 
     
@@ -72,7 +73,7 @@ fn main() {
     //build scene and render
     let scene = Scene{elements, lights};
     let depth_image = render_depth(&camera, &scene);
-    let rgb_image = render_image(&camera, &scene, 3);
+    let rgb_image = render_image(&camera, &scene, 10);
     
     //save images to png
     depth_image.save("depth.png").unwrap();
