@@ -37,7 +37,7 @@ fn main() {
     elements.push(Element{
         name : format!("sphere3"),
         geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-2.5, -0.5, 0.5]), 0.5)),
-        material : Material::defult_diffuse(Color::blue()),
+        material : Material::Refractive {transparency : 0.8, index : 1.33, albedo : 0.18, coloration : Coloration::Color(Color::blue())},
     });
 
     let floor_image = image::open("examples/floor_texture.jpg").unwrap().to_rgb();
@@ -62,7 +62,7 @@ fn main() {
     lights.push(Light::Directional(DirectionalLight{
         direction: V3::new([0.0, 0.0, -1.0]).normalize(),
         color: Color::yellow(),
-        intensity: 0.3,
+        intensity: 1.0,
     }));
     lights.push(Light::Point(PointLight{
         position: V3::new([0.0, 0.0, 1.0]),

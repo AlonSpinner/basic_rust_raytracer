@@ -46,29 +46,32 @@ impl Ray {
         }
     }
 
-    pub fn transmit(&self, intersection_point: V3, normal: V3, n1: f64, n2: f64) -> Option<Ray> {
-        //need to understand this better, later
-        assert!(normal.is_unit_length());
-
-        let eta = n1 / n2;
-        let cos_theta1 = -V3::dot(self.direction, normal);  // Assuming both vectors are normalized
-    
-        let k = 1.0 - eta * eta * (1.0 - cos_theta1 * cos_theta1);
-    
-        if k < 0.0 {
-            // Total internal reflection
-            return None;
+    pub fn transmit(&self, point: V3, normal: V3, index: f64) -> Option<Ray> {
+        let mut ref_n = normal;
+        let mut eta_t = index;
+        let mut eta_i = 1.0f64;
+        let mut i_dot_n = V3::dot(self.direction,normal);
+        if i_dot_n < 0.0 {
+            //Outside the surface
+            i_dot_n = -i_dot_n;
+        } else {
+            //Inside the surface; invert the normal and swap the indices of refraction
+            ref_n = -normal;
+            eta_t = 1.0;
+            eta_i = index as f64;
         }
     
-        let cos_theta2 = k.sqrt();
-        let new_direction = eta * self.direction + (eta * cos_theta1 - cos_theta2) * normal;
-        
-        Some(Ray {
-            origin: intersection_point,
-            direction: new_direction,
-        })
+        let eta = eta_i / eta_t;
+        let k = 1.0 - (eta * eta) * (1.0 - i_dot_n * i_dot_n);
+        if k < 0.0 {
+            None
+        } else {
+            Some(Ray {
+                origin: point,
+                direction: (self.direction + i_dot_n * ref_n) * eta - ref_n * k.sqrt(),
+            })
+        }
     }
-
 }
 
 impl fmt::Display for Ray {

@@ -312,7 +312,7 @@ impl Coloration {
 pub enum Material{
     Diffuse{albedo : f32, coloration : Coloration},
     Reflective{reflectivity : f32, albedo : f32, coloration : Coloration},
-    Glass{index : f64, transparency : f32},
+    Refractive{index : f64, transparency : f32, albedo : f32, coloration : Coloration},
 }
 
 impl Material {
@@ -361,15 +361,15 @@ impl Intersectable for Sphere {
         let l = self.center - ray.origin;
         
         let l_d_t = V3::dot(l, ray.direction);
-        if l_d_t < 0.0 {
-            return None;  // Sphere is behind the ray
+        if l.norm2() > self.radius * self.radius && l_d_t < 0.0{
+            return None;  // Ray origin is outside the sphere which is behind the ray
         }
-
+        
         let s2 = l.norm2() - l_d_t * l_d_t;
         let r2 = self.radius * self.radius;
         
         if s2 > r2 {
-            return None;  // Ray misses the sphere
+            return None;  // Ray origin is outside the sphere, and the ray misses the sphere
         }
 
         // Calculate two potential intersection times
