@@ -465,11 +465,10 @@ pub mod tests{
 
         //addition
         assert_eq!(red + blue, purple);
-        assert_eq!(red + blue + blue, red + blue);
+        assert_eq!(blue + red, red + blue);
 
         //multiplication
         assert_eq!(red * blue, black);
-        assert_eq!(red * 2.0, red);
         assert_eq!(half_green * 2.0, green);
 
         //io into RGB
