@@ -325,7 +325,7 @@ pub struct Intersection {
     pub time_of_flight : f64,
     pub normal : V3,
     pub point : V3,
-    pub texture_coords : (f32, f32)
+    pub texture_coords : (f32, f32),
 }
 
 pub trait Intersectable {

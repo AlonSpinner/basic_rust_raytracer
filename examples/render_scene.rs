@@ -31,14 +31,20 @@ fn main() {
     });
     elements.push(Element{
         name : format!("sphere2"),
-        geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-2.0, 2.0, 1.0]), 1.0)),
+        geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-1.5, 2.0, 1.3]), 1.3)),
         material : Material::defult_diffuse(Color::yellow()),
     });
     elements.push(Element{
         name : format!("sphere3"),
-        geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-2.5, -0.5, 0.5]), 0.5)),
-        material : Material::Refractive {transparency : 0.8, index : 1.33, albedo : 0.18, coloration : Coloration::Color(Color::blue())},
+        geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-2.5, -0.5, 0.8]), 0.8)),
+        material : Material::Refractive {transparency : 0.8, index : 2.0, albedo : 0.18, coloration : Coloration::Color(Color::blue())},
     });
+
+    // elements.push(Element{
+    //     name : format!("sphere4"),
+    //     geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-0.5, 0.0, 0.5]), 0.2)),
+    //     material : Material::Refractive {transparency : 0.8, index : 1.0, albedo : 0.18, coloration : Coloration::Color(Color::white())},
+    // });
 
     let floor_image = image::open("examples/floor_texture.jpg").unwrap().to_rgb();
     elements.push(Element{
@@ -61,19 +67,19 @@ fn main() {
     let mut lights : Vec<Light> = Vec::new();
     lights.push(Light::Directional(DirectionalLight{
         direction: V3::new([0.0, 0.0, -1.0]).normalize(),
-        color: Color::yellow(),
-        intensity: 1.0,
+        color: Color::white(),
+        intensity: 5.0,
     }));
     lights.push(Light::Point(PointLight{
-        position: V3::new([0.0, 0.0, 1.0]),
+        position: V3::new([-0.5, 0.0, 0.5]),
         color: Color::white(),
-        intensity: 100.0,
+        intensity: 300.0,
     }));
     
     //build scene and render
     let scene = Scene{elements, lights};
     let depth_image = render_depth(&camera, &scene);
-    let rgb_image = render_image(&camera, &scene, 10);
+    let rgb_image = render_image(&camera, &scene, 3);
     
     //save images to png
     depth_image.save("depth.png").unwrap();
