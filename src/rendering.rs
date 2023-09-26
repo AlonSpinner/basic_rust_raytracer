@@ -1,4 +1,4 @@
-use crate::{scene::{Camera, Scene, Color, Intersectable, Intersection, Light, Material, Coloration},
+use crate::{scene::{Camera, Scene, Color, Intersectable, Intersection, Light, Material, Coloration, SceneGeometry},
              geometry::Ray};
 use image::{Rgb, RgbImage, Pixel};
 use crate::vector::V3;
@@ -20,7 +20,7 @@ pub fn render_depth(camera: &Camera, scene: &Scene) -> RgbImage {
 
         let mut z = f64::INFINITY;
         if let Some(intersection) = scene.cast(&ray) {
-            z =  intersection.time_of_flight * V3::dot(ray.direction, camera_axis);
+            z =  intersection.geometry.time_of_flight * V3::dot(ray.direction, camera_axis);
         }
         z
         }).collect();
@@ -141,7 +141,14 @@ fn compute_diffuse_color(intersection : &Intersection, albedo : &f32, coloration
             
                 let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
                 direction_to_light);
-                if let Some(_) = scene.cast(&shadow_ray) {continue;}
+                if let Some(shadow_intersection) = scene.cast(&shadow_ray) {
+                    match shadow_intersection.element.geometry {
+                        SceneGeometry::Sphere(_) => continue,
+                        SceneGeometry::Plane(_) => continue,
+                        SceneGeometry::SkySphere(_) => (),
+                        SceneGeometry::LightBolb(_) => (),
+                    }
+                }
             
             }
             Light::Point(point_light) => {
@@ -154,11 +161,15 @@ fn compute_diffuse_color(intersection : &Intersection, albedo : &f32, coloration
                 let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
                 direction_to_light);
                 if let Some(shadow_intersection) = scene.cast(&shadow_ray) {
-                    if shadow_intersection.time_of_flight < r2.sqrt() as f64 {continue;}
+                    match shadow_intersection.element.geometry {
+                        SceneGeometry::Sphere(_) => if shadow_intersection.geometry.time_of_flight < r2.sqrt() as f64 {continue;},
+                        SceneGeometry::Plane(_) => if shadow_intersection.geometry.time_of_flight < r2.sqrt() as f64 {continue;},
+                        SceneGeometry::SkySphere(_) => (),
+                        SceneGeometry::LightBolb(_) => (),
                     }
+                }
             }
         }
-
         pixel_color = pixel_color + lambret_cosine_law(intersection.normal,
                                 direction_to_light,
                                 light_intensity,

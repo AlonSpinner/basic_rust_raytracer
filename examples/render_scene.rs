@@ -41,34 +41,31 @@ fn main() {
     });
 
     // elements.push(Element{
-    //     name : format!("sphere4"),
-    //     geometry : SceneGeometry::Sphere(Sphere::new(V3::new([-0.5, 0.0, 0.5]), 0.2)),
-    //     material : Material::Refractive {transparency : 0.8, index : 1.0, albedo : 0.18, coloration : Coloration::Color(Color::white())},
+    //     name : format!("lightbolb"),
+    //     geometry : SceneGeometry::LightBolb(Sphere::new(V3::new([-0.5, 0.0, 0.5]), 0.2)),
+    //     material : Material::Refractive {transparency : 0.8, index : 1.0, albedo : 0.6, coloration : Coloration::Color(Color::white())},
     // });
 
     let floor_image = image::open("examples/floor_texture.jpg").unwrap().to_rgb();
     elements.push(Element{
         name : format!("plane"),
         geometry : SceneGeometry::Plane(Plane::new(SE3::identity())),
-        // material : Material::Diffuse { albedo: 0.18, coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)})},
-        material : Material::Reflective { reflectivity: 0.1, albedo: 0.18, coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)})},
+        material : Material::Reflective { reflectivity: 0.02, albedo: 0.18, coloration: Coloration::Texture(Texture{image : floor_image, tile : (2.0, 1.0)})},
     });
 
-    
-    // let _tmp = SE3::new(SO3::Exp(V3::new([-std::f64::consts::PI* 1.0/4.0,0.0,0.0])), V3::new([0.0, 30.0, 0.0]));
-    // elements.push(Element{
-    //     name : format!("sky"),
-    //     geometry : SceneGeometry::Plane(Plane::new(_tmp)),
-    //     material : Material{coloration: Coloration::Color(Color::blue()),
-    //          albedo: 1.0, reflectivity : 0.0, refraction_index : 0.0},
-    // });
+    let sky_image = image::open("examples/sky.jpeg").unwrap().to_rgb();
+    elements.push(Element{
+        name : format!("skysphere"),
+        geometry : SceneGeometry::SkySphere(Sphere::new(V3::zeros(), 1000.0)),
+        material : Material::Diffuse { albedo: 0.5, coloration: Coloration::Texture(Texture{image : sky_image, tile : (1.0, 1.0)}) },
+    });
 
     //add lights
     let mut lights : Vec<Light> = Vec::new();
     lights.push(Light::Directional(DirectionalLight{
         direction: V3::new([0.0, 0.0, -1.0]).normalize(),
         color: Color::white(),
-        intensity: 5.0,
+        intensity: 2.0,
     }));
     lights.push(Light::Point(PointLight{
         position: V3::new([-0.5, 0.0, 0.5]),

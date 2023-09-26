@@ -400,14 +400,18 @@ impl Intersectable for Sphere {
 #[derive(Debug)]
 pub enum SceneGeometry{
     Sphere(Sphere),
-    Plane(Plane)
+    Plane(Plane),
+    SkySphere(Sphere),
+    LightBolb(Sphere),
 }
 
 impl Intersectable for SceneGeometry{
     fn intersect(&self, ray : &Ray) -> Option<Intersection> {
         match self {
             SceneGeometry::Sphere(sphere) => sphere.intersect(ray),
-            SceneGeometry::Plane(plane) => plane.intersect(ray)
+            SceneGeometry::Plane(plane) => plane.intersect(ray),
+            SceneGeometry::SkySphere(sphere) => sphere.intersect(ray),
+            SceneGeometry::LightBolb(sphere) => sphere.intersect(ray),
         }
     }
 }
@@ -419,20 +423,35 @@ pub struct Element {
     pub material: Material
 }
 
+pub struct ElementIntersection<'a>{
+    pub geometry : Intersection,
+    pub element : &'a Element
+}
+
+impl Element {
+    fn intersect(&self, ray : &Ray) -> Option<ElementIntersection> {
+        if let Some(intersection) = self.geometry.intersect(ray) {
+            Some(ElementIntersection{geometry : intersection, element : self})
+        } else {
+            None
+        }
+    }
+}
+
 pub struct Scene {
     pub elements: Vec<Element>,
     pub lights : Vec<Light>,
 }
 
 impl Scene {
-    pub fn cast(&self, ray: &Ray) -> Option<Intersection> {
-        let mut closest_intersection: Option<Intersection> = None;
+    pub fn cast(&self, ray: &Ray) -> Option<ElementIntersection> {
+        let mut closest_intersection: Option<ElementIntersection> = None;
     
         for element in &self.elements {
-            if let Some(current_intersection) = element.geometry.intersect(ray) {
+            if let Some(current_intersection) = element.intersect(ray) {
                 match &closest_intersection {
                     Some(closest) => {
-                        if current_intersection.time_of_flight < closest.time_of_flight {
+                        if current_intersection.geometry.time_of_flight < closest.geometry.time_of_flight {
                             closest_intersection = Some(current_intersection);
                         }
                     },
