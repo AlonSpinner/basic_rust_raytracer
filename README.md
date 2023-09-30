@@ -17,6 +17,6 @@ https://github.com/bheisler/raytracer
 
 blogposts:
 
-https://bheisler.github.io/post/writing-raytracer-in-rust-part-1/
-https://bheisler.github.io/post/writing-raytracer-in-rust-part-2/
-https://bheisler.github.io/post/writing-raytracer-in-rust-part-3/
+https://bheisler.github.io/post/writing-raytracer-in-rust-part-1/ </br>
+https://bheisler.github.io/post/writing-raytracer-in-rust-part-2/ </br>
+https://bheisler.github.io/post/writing-raytracer-in-rust-part-3/ </br>
