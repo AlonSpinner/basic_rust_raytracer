@@ -41,9 +41,24 @@ fn main() {
     });
 
     // elements.push(Element{
-    //     name : format!("lightbolb"),
+    //     name : format!("lightbolb_outer"),
+    //     geometry : SceneGeometry::LightBolb(Sphere::new(V3::new([-0.5, 0.0, 0.5]), 0.25)),
+    //     material : Material::Refractive {transparency : 0.98, index : 10.0, albedo : 0.01, coloration : Coloration::Color(Color::red())},
+    //     // material : Material::Diffuse { albedo: 0.5, coloration: Coloration::Color(Color::white()) }
+    // });
+
+    // elements.push(Element{
+    //     name : format!("lightbolb_middle"),
     //     geometry : SceneGeometry::LightBolb(Sphere::new(V3::new([-0.5, 0.0, 0.5]), 0.2)),
-    //     material : Material::Refractive {transparency : 0.8, index : 1.0, albedo : 0.6, coloration : Coloration::Color(Color::white())},
+    //     material : Material::Refractive {transparency : 0.98, index : 1.0, albedo : 0.01, coloration : Coloration::Color(Color::yellow())},
+    //     // material : Material::Diffuse { albedo: 0.5, coloration: Coloration::Color(Color::white()) }
+    // });
+
+    // elements.push(Element{
+    //     name : format!("lightbolb_inner"),
+    //     geometry : SceneGeometry::LightBolb(Sphere::new(V3::new([-0.5, 0.0, 0.5]), 0.1)),
+    //     material : Material::Refractive {transparency : 0.5, index : 1.0, albedo : 0.01, coloration : Coloration::Color(Color::white())},
+    //     // material : Material::Diffuse { albedo: 0.5, coloration: Coloration::Color(Color::white()) }
     // });
 
     let floor_image = image::open("examples/floor_texture.jpg").unwrap().to_rgb();

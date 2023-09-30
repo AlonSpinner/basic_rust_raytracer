@@ -1,4 +1,4 @@
-use crate::{scene::{Camera, Scene, Color, Intersectable, Intersection, Light, Material, Coloration, SceneGeometry},
+use crate::{scene::{Camera, Scene, Color, ElementIntersection, Intersection, Light, Material, Coloration, SceneGeometry},
              geometry::Ray};
 use image::{Rgb, RgbImage, Pixel};
 use crate::vector::V3;
@@ -76,18 +76,18 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
     let mut closest_tof = f64::INFINITY;
     let mut pixel_color  = Color::black();
     for element in &scene.elements {
-        if let Some(intersection) = element.geometry.intersect(&ray) {                   
-            if intersection.time_of_flight < closest_tof {
-                closest_tof = intersection.time_of_flight;
+        if let Some(intersection) = element.intersect(&ray) {                   
+            if intersection.geometry.time_of_flight < closest_tof {
+                closest_tof = intersection.geometry.time_of_flight;
                 
                 match &element.material {
                     Material::Diffuse { albedo, coloration } => {
                         pixel_color = compute_diffuse_color(&intersection, albedo, coloration, &scene);
                     },
                     Material::Reflective { reflectivity, albedo, coloration } => {
-                        let shadow_point_reflect = intersection.point + intersection.normal * SHADOW_BIAS;
+                        let shadow_point_reflect = intersection.geometry.point + intersection.geometry.normal * SHADOW_BIAS;
                         let diffuse_color = compute_diffuse_color(&intersection, albedo, coloration, &scene);
-                        let reflection_ray = ray.reflect(shadow_point_reflect,intersection.normal);
+                        let reflection_ray = ray.reflect(shadow_point_reflect,intersection.geometry.normal);
                         let reflection_color = get_ray_color(&reflection_ray,
                             &scene,
                                 max_ray_recursion-1);
@@ -96,15 +96,15 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
                     Material::Refractive {index, transparency, albedo, coloration} => {
                         let diffuse_color = compute_diffuse_color(&intersection, albedo, coloration, &scene);
 
-                        let _tmp = V3::dot(ray.direction,intersection.normal).signum();
-                        let shadow_point_transmit = intersection.point + _tmp * intersection.normal * SHADOW_BIAS;
-                        let shadow_point_reflect = intersection.point - _tmp * intersection.normal * SHADOW_BIAS;
+                        let _tmp = V3::dot(ray.direction,intersection.geometry.normal).signum();
+                        let shadow_point_transmit = intersection.geometry.point + _tmp * intersection.geometry.normal * SHADOW_BIAS;
+                        let shadow_point_reflect = intersection.geometry.point - _tmp * intersection.geometry.normal * SHADOW_BIAS;
                         
-                        let kr = fresnel(ray.direction, intersection.normal, *index) as f32;
+                        let kr = fresnel(ray.direction, intersection.geometry.normal, *index) as f32;
                         let mut refraction_color = Color::black();
                         if kr < 1.0 {
                             if let Some(transmission_ray) = ray.transmit(shadow_point_transmit,
-                                                                                intersection.normal,
+                                                                                intersection.geometry.normal,
                                                                                 *index) {
                                 refraction_color = get_ray_color(&transmission_ray,
                                                                     &scene,
@@ -113,7 +113,7 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
                             }
                         }
                         
-                        let reflection_ray = ray.reflect(shadow_point_reflect, intersection.normal);
+                        let reflection_ray = ray.reflect(shadow_point_reflect, intersection.geometry.normal);
                         let reflection_color = get_ray_color(&reflection_ray, &scene, max_ray_recursion-1);
 
                         pixel_color = reflection_color * kr + refraction_color * (1.0 - kr);
@@ -127,7 +127,7 @@ fn get_ray_color(ray : &Ray, scene : &Scene, max_ray_recursion : usize) -> Color
     pixel_color.clamp()
 }
 
-fn compute_diffuse_color(intersection : &Intersection, albedo : &f32, coloration : &Coloration,  scene : &Scene) -> Color {
+fn compute_diffuse_color(intersection : &ElementIntersection, albedo : &f32, coloration : &Coloration,  scene : &Scene) -> Color {
     let mut pixel_color = Color::black();
     for light in &scene.lights {
         let direction_to_light : V3;
@@ -139,8 +139,8 @@ fn compute_diffuse_color(intersection : &Intersection, albedo : &f32, coloration
                 light_color = dir_light.color;
                 light_intensity = dir_light.intensity;
             
-                let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
-                direction_to_light);
+                let bias = intersection.geometry.normal * SHADOW_BIAS;
+                let shadow_ray = Ray::new(intersection.geometry.point + bias, direction_to_light);
                 if let Some(shadow_intersection) = scene.cast(&shadow_ray) {
                     match shadow_intersection.element.geometry {
                         SceneGeometry::Sphere(_) => continue,
@@ -152,14 +152,20 @@ fn compute_diffuse_color(intersection : &Intersection, albedo : &f32, coloration
             
             }
             Light::Point(point_light) => {
-                direction_to_light = (point_light.position - intersection.point).normalize();
+                direction_to_light = (point_light.position - intersection.geometry.point).normalize();
                 light_color = point_light.color;
 
-                let r2 = (point_light.position - intersection.point).norm2() as f32;
+                let r2 = (point_light.position - intersection.geometry.point).norm2() as f32;
                 light_intensity = point_light.intensity / (4.0 * ::std::f32::consts::PI * r2);
 
-                let shadow_ray = Ray::new(intersection.point + (intersection.normal * SHADOW_BIAS),
-                direction_to_light);
+                let mut bias = intersection.geometry.normal * SHADOW_BIAS;
+                match intersection.element.geometry {
+                    SceneGeometry::Sphere(_) => (),
+                    SceneGeometry::Plane(_) => (),
+                    SceneGeometry::SkySphere(_) => (),
+                    SceneGeometry::LightBolb(_) => bias = -bias,
+                }
+                let shadow_ray = Ray::new(intersection.geometry.point + bias, direction_to_light);
                 if let Some(shadow_intersection) = scene.cast(&shadow_ray) {
                     match shadow_intersection.element.geometry {
                         SceneGeometry::Sphere(_) => if shadow_intersection.geometry.time_of_flight < r2.sqrt() as f64 {continue;},
@@ -170,11 +176,19 @@ fn compute_diffuse_color(intersection : &Intersection, albedo : &f32, coloration
                 }
             }
         }
-        pixel_color = pixel_color + lambret_cosine_law(intersection.normal,
+        let mut surface_normal = intersection.geometry.normal;
+        match intersection.element.geometry {
+            SceneGeometry::Sphere(_) => (),
+            SceneGeometry::Plane(_) => (),
+            SceneGeometry::SkySphere(_) => (),
+            SceneGeometry::LightBolb(_) => surface_normal = -surface_normal,
+        }
+
+        pixel_color = pixel_color + lambret_cosine_law(surface_normal,
                                 direction_to_light,
                                 light_intensity,
                                 light_color,
-                                coloration.color(intersection.texture_coords),
+                                coloration.color(intersection.geometry.texture_coords),
                                 *albedo);
     }
     pixel_color

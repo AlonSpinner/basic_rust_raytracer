@@ -429,7 +429,7 @@ pub struct ElementIntersection<'a>{
 }
 
 impl Element {
-    fn intersect(&self, ray : &Ray) -> Option<ElementIntersection> {
+    pub fn intersect(&self, ray : &Ray) -> Option<ElementIntersection> {
         if let Some(intersection) = self.geometry.intersect(ray) {
             Some(ElementIntersection{geometry : intersection, element : self})
         } else {
