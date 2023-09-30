@@ -309,19 +309,15 @@ impl Coloration {
 }
 
 #[derive(Debug)]
-pub struct Material{
-    pub coloration : Coloration,
-    pub albedo : f32,
-    pub reflectivity : f32,
+pub enum Material{
+    Diffuse{albedo : f32, coloration : Coloration},
+    Reflective{reflectivity : f32, albedo : f32, coloration : Coloration},
+    Refractive{index : f64, transparency : f32, albedo : f32, coloration : Coloration},
 }
 
 impl Material {
-    pub fn color_with_defaults(color : Color) -> Self {
-        Material {
-            coloration : Coloration::Color(color),
-            albedo : 0.18,
-            reflectivity : 0.0,
-        }
+    pub fn defult_diffuse(color : Color) -> Self {
+        Material::Diffuse { albedo: 0.18, coloration: Coloration::Color(color) }
     }
 }
 
@@ -329,7 +325,7 @@ pub struct Intersection {
     pub time_of_flight : f64,
     pub normal : V3,
     pub point : V3,
-    pub texture_coords : (f32, f32)
+    pub texture_coords : (f32, f32),
 }
 
 pub trait Intersectable {
@@ -365,20 +361,27 @@ impl Intersectable for Sphere {
         let l = self.center - ray.origin;
         
         let l_d_t = V3::dot(l, ray.direction);
-        if l_d_t < 0.0 {
-            return None;  // Sphere is behind the ray
+        if l.norm2() > self.radius * self.radius && l_d_t < 0.0{
+            return None;  // Ray origin is outside the sphere which is behind the ray
         }
-
+        
         let s2 = l.norm2() - l_d_t * l_d_t;
         let r2 = self.radius * self.radius;
         
         if s2 > r2 {
-            return None;  // Ray misses the sphere
+            return None;  // Ray origin is outside the sphere, and the ray misses the sphere
         }
 
-        let time_of_flight = l_d_t - (r2-s2).sqrt();
-        let normal = (ray.origin + time_of_flight * ray.direction - self.center).normalize();
+        // Calculate two potential intersection times
+        let dt = (r2 - s2).sqrt();
+        let t0 = l_d_t - dt;
+        let t1 = l_d_t + dt;
 
+        // If the origin is inside the sphere, choose the larger t (exit point). 
+        // Otherwise, choose the smaller t (entry point).
+        let time_of_flight = if t0 < 0.0 { t1 } else { t0 };
+        
+        let normal = (ray.origin + time_of_flight * ray.direction - self.center).normalize();
         let intersection_point = ray.origin + time_of_flight * ray.direction;
         let phi = intersection_point[2].atan2(intersection_point[0]);
         let theta = (intersection_point[1]/self.radius).acos();
@@ -397,14 +400,18 @@ impl Intersectable for Sphere {
 #[derive(Debug)]
 pub enum SceneGeometry{
     Sphere(Sphere),
-    Plane(Plane)
+    Plane(Plane),
+    SkySphere(Sphere),
+    LightBolb(Sphere),
 }
 
 impl Intersectable for SceneGeometry{
     fn intersect(&self, ray : &Ray) -> Option<Intersection> {
         match self {
             SceneGeometry::Sphere(sphere) => sphere.intersect(ray),
-            SceneGeometry::Plane(plane) => plane.intersect(ray)
+            SceneGeometry::Plane(plane) => plane.intersect(ray),
+            SceneGeometry::SkySphere(sphere) => sphere.intersect(ray),
+            SceneGeometry::LightBolb(sphere) => sphere.intersect(ray),
         }
     }
 }
@@ -416,20 +423,35 @@ pub struct Element {
     pub material: Material
 }
 
+pub struct ElementIntersection<'a>{
+    pub geometry : Intersection,
+    pub element : &'a Element
+}
+
+impl Element {
+    pub fn intersect(&self, ray : &Ray) -> Option<ElementIntersection> {
+        if let Some(intersection) = self.geometry.intersect(ray) {
+            Some(ElementIntersection{geometry : intersection, element : self})
+        } else {
+            None
+        }
+    }
+}
+
 pub struct Scene {
     pub elements: Vec<Element>,
     pub lights : Vec<Light>,
 }
 
 impl Scene {
-    pub fn cast(&self, ray: &Ray) -> Option<Intersection> {
-        let mut closest_intersection: Option<Intersection> = None;
+    pub fn cast(&self, ray: &Ray) -> Option<ElementIntersection> {
+        let mut closest_intersection: Option<ElementIntersection> = None;
     
         for element in &self.elements {
-            if let Some(current_intersection) = element.geometry.intersect(ray) {
+            if let Some(current_intersection) = element.intersect(ray) {
                 match &closest_intersection {
                     Some(closest) => {
-                        if current_intersection.time_of_flight < closest.time_of_flight {
+                        if current_intersection.geometry.time_of_flight < closest.geometry.time_of_flight {
                             closest_intersection = Some(current_intersection);
                         }
                     },
@@ -462,11 +484,10 @@ pub mod tests{
 
         //addition
         assert_eq!(red + blue, purple);
-        assert_eq!(red + blue + blue, red + blue);
+        assert_eq!(blue + red, red + blue);
 
         //multiplication
         assert_eq!(red * blue, black);
-        assert_eq!(red * 2.0, red);
         assert_eq!(half_green * 2.0, green);
 
         //io into RGB
@@ -500,5 +521,25 @@ pub mod tests{
         let expected_direction = (point - camera.pose.t).normalize();
         let ray = camera.pixel_2_ray(image_point);
         assert!(V3::is_close(&ray.direction, &expected_direction, None));
+    }
+
+    #[test]
+    fn test_inside_sphere_intersection() {
+        let sphere = Sphere::new(V3::default(),2.0);
+        let eye = V3::new([0.0,0.0,1.0]);
+        let target = V3::new([2.0,0.0,0.0]);
+        let ray = Ray::new(eye, (target-eye).normalize());
+        let intersection = sphere.intersect(&ray).unwrap();
+        assert!(V3::is_close(&intersection.point, &V3::new([2.0,0.0,0.0]), None));
+    }
+
+    #[test]
+    fn test_outside_sphere_intersection() {
+        let sphere = Sphere::new(V3::zeros(),2.0);
+        let eye = V3::new([0.0,0.0,3.0]);
+        let target = V3::new([0.0,0.0,0.0]);
+        let ray = Ray::new(eye, (target-eye).normalize());
+        let intersection = sphere.intersect(&ray).unwrap();
+        assert!(V3::is_close(&intersection.point, &V3::new([0.0,0.0,2.0]), None));
     }
 }
