@@ -1,10 +1,21 @@
 ## Raytracing tutorial for basic rust
 
-completely copied from here:
+Made a raytracer in rust! cool!
+
+![balls](balls_rgb.png)
+
+```
+cargo run --example balls --release
+```
+
+
+Many thanks to bheisler whos blog + code I followed:
+
+code:
 
 https://github.com/bheisler/raytracer
 
-blogpost:
+blogposts:
 
 https://bheisler.github.io/post/writing-raytracer-in-rust-part-1/
 https://bheisler.github.io/post/writing-raytracer-in-rust-part-2/
