@@ -1,5 +1,6 @@
 ## Raytracing tutorial for basic rust
 
+Followed bheisler's code and blog. Some is is inspired by his code, and some is a complete copy. I retained his license in this repo
 Made a raytracer in rust! cool!
 
 ![balls](balls_rgb.png)
@@ -9,9 +10,7 @@ cargo run --example balls --release
 ```
 
 
-Many thanks to bheisler whos blog + code I followed:
-
-code:
+bheisler's code:
 
 https://github.com/bheisler/raytracer
 
