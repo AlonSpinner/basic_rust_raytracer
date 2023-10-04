@@ -1,6 +1,6 @@
 ## Raytracing tutorial for basic rust
 
-completely copied from here:
+Followed bheisler's code and blog. Some is is inspired by his code, and some is a complete copy. I retained his license in this repo
 
 https://github.com/bheisler/raytracer
 
