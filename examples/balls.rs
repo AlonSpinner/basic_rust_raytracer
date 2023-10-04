@@ -1,4 +1,4 @@
-use raytracing_tutorial::geometry::{Sphere, SE3, SO3, Plane};
+use raytracing_tutorial::geometry::{Sphere, SE3, Plane};
 use raytracing_tutorial::matrix::Matrix33;
 use raytracing_tutorial::vector::V3;
 use raytracing_tutorial::scene::{Camera, Scene, Element, Material, SceneGeometry,

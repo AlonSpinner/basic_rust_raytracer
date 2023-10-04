@@ -5,7 +5,7 @@ use image::{Pixel, Rgb, RgbImage};
 use crate::EPSILON;
 use crate::matrix::Matrix33;
 use crate::vector::{V2,V3};
-use crate::geometry::{Sphere, Plane, SO3, SE3, Ray};
+use crate::geometry::{Sphere, Plane, SE3, Ray};
 
 const GAMMA: f32 = 2.2;
 
@@ -468,6 +468,7 @@ impl Scene {
 #[cfg(test)]
 pub mod tests{
     use super::*;
+    use crate::geometry::SO3;
 
     #[test]
     fn test_color() {

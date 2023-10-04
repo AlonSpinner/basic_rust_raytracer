@@ -1,4 +1,4 @@
-use crate::{scene::{Camera, Scene, Color, ElementIntersection, Intersection, Light, Material, Coloration, SceneGeometry},
+use crate::{scene::{Camera, Scene, Color, ElementIntersection, Light, Material, Coloration, SceneGeometry},
              geometry::Ray};
 use image::{Rgb, RgbImage, Pixel};
 use crate::vector::V3;

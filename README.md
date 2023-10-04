@@ -1,7 +1,9 @@
 ## Raytracing tutorial for basic rust
 
-Followed bheisler's code and blog. Some is is inspired by his code, and some is a complete copy. I retained his license in this repo
 Made a raytracer in rust! cool!
+
+Followed bheisler's code and blog. Some is is inspired by his code, and some is a complete copy. I retained his license in this repo.
+
 
 ![balls](balls_rgb.png)
 
